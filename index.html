@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Torre de Controle PNR</title>
-  <link rel="stylesheet" href="styles.css?v=20260810-03">
+  <link rel="stylesheet" href="styles.css?v=20260810-04">
 </head>
 <body>
   <div class="app">
@@ -13,27 +13,27 @@
         <div class="brand-logo">SANLOG</div>
         <div>
           <h1>TORRE DE CONTROLE PNR</h1>
-          <p>Gestão Operacional Shopee</p>
+          <p>GestÃ£o Operacional Shopee</p>
         </div>
       </div>
 
-      <nav class="nav" aria-label="Navegação principal">
-        <button class="nav-button active" data-panel="overview" type="button"><i data-lucide="layout-dashboard"></i><span>Visão geral</span></button>
+      <nav class="nav" aria-label="NavegaÃ§Ã£o principal">
+        <button class="nav-button active" data-panel="overview" type="button"><i data-lucide="layout-dashboard"></i><span>VisÃ£o geral</span></button>
         <button class="nav-button" data-panel="created" type="button"><i data-lucide="file-plus-2"></i><span>PNR Criadas</span></button>
-        <button class="nav-button" data-panel="assigned" type="button"><i data-lucide="user-check"></i><span>PNR Atribuídas</span></button>
-        <button class="nav-button" data-panel="analysis" type="button"><i data-lucide="activity"></i><span>PNR em Análise</span></button>
+        <button class="nav-button" data-panel="assigned" type="button"><i data-lucide="user-check"></i><span>PNR AtribuÃ­das</span></button>
+        <button class="nav-button" data-panel="analysis" type="button"><i data-lucide="activity"></i><span>PNR em AnÃ¡lise</span></button>
         <button class="nav-button" data-panel="reverted" type="button"><i data-lucide="rotate-ccw"></i><span>PNR Revertidas</span></button>
         <button class="nav-button" data-panel="billingForms" type="button"><i data-lucide="clipboard-list"></i><span>Faturamento Forms</span></button>
         <button class="nav-button" data-panel="billing" type="button"><i data-lucide="receipt"></i><span>Faturamento PNR</span></button>
         <button class="nav-button" data-panel="worklist" type="button"><i data-lucide="list-checks"></i><span>Tratativas</span></button>
         <button class="nav-button" data-panel="manager" type="button"><i data-lucide="send"></i><span>Gestor</span></button>
-        <button class="nav-button" data-panel="history" type="button"><i data-lucide="history"></i><span>Histórico</span></button>
+        <button class="nav-button" data-panel="history" type="button"><i data-lucide="history"></i><span>HistÃ³rico</span></button>
       </nav>
 
       <div class="side-status">
         <span class="status-dot"></span>
         <div>
-          <strong id="sideTotal">Sem importação</strong>
+          <strong id="sideTotal">Sem importaÃ§Ã£o</strong>
           <small id="sideSaved">Tratativas locais ativas</small>
         </div>
       </div>
@@ -43,13 +43,13 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">Base XPT_BA_Teixeira de Freitas_03</p>
-          <h2 id="panelTitle">Visão geral</h2>
-          <p class="panel-summary" id="panelSummary">Aguardando importação.</p>
+          <h2 id="panelTitle">VisÃ£o geral</h2>
+          <p class="panel-summary" id="panelSummary">Aguardando importaÃ§Ã£o.</p>
         </div>
         <div class="actions">
           <button class="icon-button" id="saveCloudBtn" type="button" title="Salvar na nuvem" aria-label="Salvar na nuvem"><i data-lucide="cloud-upload"></i></button>
           <button class="icon-button" id="loadCloudBtn" type="button" title="Carregar da nuvem" aria-label="Carregar da nuvem"><i data-lucide="cloud-download"></i></button>
-          <button class="icon-button" id="exportViewBtn" type="button" title="Exportar visão atual" aria-label="Exportar visão atual"><i data-lucide="download"></i></button>
+          <button class="icon-button" id="exportViewBtn" type="button" title="Exportar visÃ£o atual" aria-label="Exportar visÃ£o atual"><i data-lucide="download"></i></button>
           <button class="secondary-button" id="exportFormsBtn" type="button" hidden><i data-lucide="file-spreadsheet"></i><span>Exportar Forms</span></button>
           <label class="import-button">
             <i data-lucide="upload-cloud"></i>
@@ -64,14 +64,14 @@
       <section class="panel active" id="overview">
         <section class="overview-hero">
           <div class="overview-title-block">
-            <span>Visão executiva</span>
+            <span>VisÃ£o executiva</span>
             <h3>Painel operacional PNR</h3>
-            <p>Leitura rápida da fila: pendências abertas, status críticos, avanço das tratativas e pressão de SLA.</p>
+            <p>Leitura rÃ¡pida da fila: pendÃªncias abertas, status crÃ­ticos, avanÃ§o das tratativas e pressÃ£o de SLA.</p>
           </div>
           <button class="overview-health" data-kpi="treated" type="button">
-            <span>Índice tratado</span>
+            <span>Ãndice tratado</span>
             <strong id="overviewTreatmentRate">0%</strong>
-            <small id="overviewTreatmentText">Aguardando importação.</small>
+            <small id="overviewTreatmentText">Aguardando importaÃ§Ã£o.</small>
           </button>
         </section>
 
@@ -80,8 +80,8 @@
         <div class="overview-control-grid">
           <section class="surface funnel-card">
             <header class="section-head">
-              <h3>O que precisa de atenção</h3>
-              <button class="text-button" data-kpi="pending" type="button">Ver pendências</button>
+              <h3>O que precisa de atenÃ§Ã£o</h3>
+              <button class="text-button" data-kpi="pending" type="button">Ver pendÃªncias</button>
             </header>
             <div class="funnel-steps" id="funnelSteps"></div>
           </section>
@@ -114,7 +114,7 @@
               <div class="multi-filter dark" id="overviewDriverFilter" data-scope="overview" data-filter="driver"></div>
             </div>
             <div class="filter-label">
-              <span>Situação</span>
+              <span>SituaÃ§Ã£o</span>
               <div class="multi-filter dark" id="overviewSituationFilter" data-scope="overview" data-filter="situation"></div>
             </div>
             <div class="filter-label">
@@ -124,11 +124,11 @@
             <label>
               <span>Ordenar</span>
               <select id="overviewSortFilter">
-                <option value="default">Padrão</option>
+                <option value="default">PadrÃ£o</option>
                 <option value="br">BR</option>
                 <option value="driver">Entregador</option>
                 <option value="sla">SLA</option>
-                <option value="situation">Situação</option>
+                <option value="situation">SituaÃ§Ã£o</option>
               </select>
             </label>
             <label>
@@ -147,7 +147,7 @@
                   <th>Entregador</th>
                   <th>PNR criada em</th>
                   <th>Vence SLA</th>
-                  <th>Situação</th>
+                  <th>SituaÃ§Ã£o</th>
                   <th>Tratativa</th>
                 </tr>
               </thead>
@@ -189,11 +189,12 @@
       <section class="panel" id="worklist">
         <section class="surface cloud-card treatment-cloud-card" id="treatmentCloudCard">
           <div>
-            <h3>Sincronização na nuvem</h3>
-            <p class="muted">Esta é a central oficial das tratativas. Importe o histórico da nuvem, trate as BRs e sincronize para manter tudo salvo no Supabase.</p>
+            <h3>SincronizaÃ§Ã£o na nuvem</h3>
+            <p class="muted">Importe o arquivo de tratativas exportado do dashboard local e sincronize para manter tudo salvo no Supabase.</p>
           </div>
           <div class="cloud-actions">
-            <button class="primary-button" id="cloudImportTreatmentsBtn" type="button"><i data-lucide="cloud-download"></i><span>Importar tratativas da nuvem</span></button>
+            <button class="primary-button" id="cloudImportTreatmentsBtn" type="button"><i data-lucide="upload"></i><span>Importar tratativas</span></button>
+            <input id="treatmentsFileInput" type="file" accept=".csv,.xlsx,.xls,.json" hidden>
             <button class="secondary-button" id="cloudSyncTreatmentsBtn" type="button"><i data-lucide="cloud-upload"></i><span>Sincronizar tratativas</span></button>
           </div>
           <div class="manual-treatment-grid">
@@ -213,7 +214,7 @@
             <div class="multi-filter" id="driverFilter" data-filter="driver"></div>
           </div>
           <div class="filter-label">
-            <span>Situação</span>
+            <span>SituaÃ§Ã£o</span>
             <div class="multi-filter" id="situationFilter" data-filter="situation"></div>
           </div>
           <div class="filter-label">
@@ -225,7 +226,7 @@
             <div class="multi-filter" id="reasonFilter" data-filter="reason"></div>
           </div>
           <div class="filter-label">
-            <span>Dia da criação</span>
+            <span>Dia da criaÃ§Ã£o</span>
             <div class="multi-filter" id="dayFilter" data-filter="day"></div>
           </div>
           <button class="primary-button" id="assignCreatedBtn" type="button" hidden><i data-lucide="user-check"></i><span>Atribuir todas</span></button>
@@ -270,10 +271,10 @@
             <label>
               <span>Ordenar</span>
               <select id="modalSortFilter">
-                <option value="default">Padrão</option>
+                <option value="default">PadrÃ£o</option>
                 <option value="br">BR</option>
                 <option value="status">Status</option>
-                <option value="situation">Situação</option>
+                <option value="situation">SituaÃ§Ã£o</option>
               </select>
             </label>
             <label>
@@ -293,7 +294,7 @@
                   <th>Motivo</th>
                   <th>SLA</th>
                   <th>Tratativa</th>
-                  <th>Situação</th>
+                  <th>SituaÃ§Ã£o</th>
                 </tr>
               </thead>
               <tbody id="rowsBody"></tbody>
@@ -305,8 +306,8 @@
       <section class="panel" id="history">
         <div class="history-head">
           <div>
-            <h3>Histórico salvo</h3>
-            <p>Registro local das BRs tratadas nesta máquina.</p>
+            <h3>HistÃ³rico salvo</h3>
+            <p>Registro local das BRs tratadas nesta mÃ¡quina.</p>
           </div>
           <button class="secondary-button" id="exportTreatmentsBtn" type="button"><i data-lucide="file-down"></i><span>Exportar tratativas</span></button>
         </div>
@@ -317,7 +318,7 @@
                 <th>BR</th>
                 <th>Status da BR</th>
                 <th>Tratativa</th>
-                <th>Última atualização</th>
+                <th>Ãšltima atualizaÃ§Ã£o</th>
               </tr>
             </thead>
             <tbody id="historyBody"></tbody>
@@ -338,19 +339,19 @@
 
             <div class="manager-controls">
               <label>
-                <span>Data da atualização</span>
+                <span>Data da atualizaÃ§Ã£o</span>
                 <input id="managerDate" type="date">
               </label>
               <div class="sla-print-control">
                 <label>
-                  <span>SLA temporário das atribuídas</span>
+                  <span>SLA temporÃ¡rio das atribuÃ­das</span>
                   <input id="assignedSlaPrintDate" type="date">
                 </label>
                 <div class="sla-print-actions">
                   <button class="secondary-button" id="applyAssignedSlaPrintBtn" type="button"><i data-lucide="calendar-check"></i><span>Aplicar no print</span></button>
                   <button class="text-button" id="resetAssignedSlaPrintBtn" type="button">Restaurar SLA real</button>
                 </div>
-                <small id="assignedSlaPrintStatus">Não altera a planilha importada.</small>
+                <small id="assignedSlaPrintStatus">NÃ£o altera a planilha importada.</small>
               </div>
             </div>
 
@@ -358,9 +359,9 @@
           </section>
 
           <section class="surface manager-card manager-side-card">
-            <h3>Leitura dos números</h3>
+            <h3>Leitura dos nÃºmeros</h3>
             <div class="manager-stats" id="managerStats"></div>
-            <h3 class="manager-ranking-title">Ranking de atribuídas</h3>
+            <h3 class="manager-ranking-title">Ranking de atribuÃ­das</h3>
             <div class="manager-ranking" id="managerRanking"></div>
           </section>
         </div>
@@ -369,14 +370,14 @@
       <section class="panel" id="settings">
         <div class="settings-grid">
           <section class="surface">
-            <h3>Configuração Supabase</h3>
+            <h3>ConfiguraÃ§Ã£o Supabase</h3>
             <div class="form-grid">
               <label>
                 <span>URL do projeto</span>
                 <input id="supabaseUrl" type="url" placeholder="https://...supabase.co">
               </label>
               <label>
-                <span>Chave pública</span>
+                <span>Chave pÃºblica</span>
                 <input id="supabaseKey" type="password" placeholder="sb_publishable...">
               </label>
               <label>
@@ -389,15 +390,15 @@
               </label>
             </div>
             <div class="button-row">
-              <button class="primary-button" id="saveSettingsBtn" type="button"><i data-lucide="save"></i><span>Salvar configuração</span></button>
+              <button class="primary-button" id="saveSettingsBtn" type="button"><i data-lucide="save"></i><span>Salvar configuraÃ§Ã£o</span></button>
               <button class="secondary-button" id="loginBtn" type="button"><i data-lucide="log-in"></i><span>Entrar</span></button>
               <button class="secondary-button" id="logoutBtn" type="button"><i data-lucide="log-out"></i><span>Sair</span></button>
             </div>
           </section>
 
           <section class="surface backup-card">
-            <h3>Backup e restauraÃ§Ã£o</h3>
-            <p class="muted">Baixe uma cÃ³pia completa antes de subir para a nuvem ou antes de fazer mudanÃ§as grandes.</p>
+            <h3>Backup e restauraÃƒÂ§ÃƒÂ£o</h3>
+            <p class="muted">Baixe uma cÃƒÂ³pia completa antes de subir para a nuvem ou antes de fazer mudanÃƒÂ§as grandes.</p>
             <div class="backup-actions">
               <button class="primary-button" id="exportBackupBtn" type="button"><i data-lucide="database-backup"></i><span>Baixar backup completo</span></button>
               <label class="file-restore-button">
@@ -407,8 +408,8 @@
               </label>
             </div>
             <ul class="backup-list">
-              <li>Inclui PNRs importadas, tratativas, atribuÃ­das, IDs IHS e histÃ³rico de importaÃ§Ã£o.</li>
-              <li>NÃ£o substitui o Supabase automaticamente; depois de restaurar, use sincronizar se quiser enviar para a nuvem.</li>
+              <li>Inclui PNRs importadas, tratativas, atribuÃƒÂ­das, IDs IHS e histÃƒÂ³rico de importaÃƒÂ§ÃƒÂ£o.</li>
+              <li>NÃƒÂ£o substitui o Supabase automaticamente; depois de restaurar, use sincronizar se quiser enviar para a nuvem.</li>
             </ul>
           </section>
 
@@ -418,7 +419,7 @@
 pnr_treatments
 pnr_treatment_history
 pnr_imports</pre>
-            <p class="muted">A primeira versão já funciona localmente. A ligação final com a nuvem entra quando as tabelas PNR forem criadas no Supabase.</p>
+            <p class="muted">A primeira versÃ£o jÃ¡ funciona localmente. A ligaÃ§Ã£o final com a nuvem entra quando as tabelas PNR forem criadas no Supabase.</p>
           </section>
         </div>
       </section>
@@ -452,6 +453,6 @@ pnr_imports</pre>
   <script src="vendor/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260810-10"></script>
+  <script src="app.js?v=20260810-11"></script>
 </body>
 </html>

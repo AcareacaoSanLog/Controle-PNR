@@ -162,6 +162,7 @@
     authEmail: document.getElementById("authEmail"),
     authPassword: document.getElementById("authPassword"),
     cloudImportTreatmentsBtn: document.getElementById("cloudImportTreatmentsBtn"),
+    treatmentsFileInput: document.getElementById("treatmentsFileInput"),
     cloudSyncTreatmentsBtn: document.getElementById("cloudSyncTreatmentsBtn"),
     cloudManualBr: document.getElementById("cloudManualBr"),
     cloudManualTreatment: document.getElementById("cloudManualTreatment"),
@@ -1881,6 +1882,100 @@ ${managerRankingText()}
     setSync(`${countFormat(rows.length)} tratativas exportadas.`, "ok");
   }
 
+  function rowValueByHints(row, hints) {
+    const entries = Object.entries(row || {});
+    const normalize = value => clean(value)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+    const normalizedHints = hints.map(normalize);
+    const found = entries.find(([key]) => normalizedHints.includes(normalize(key)));
+    return found ? clean(found[1]) : "";
+  }
+
+  function treatmentRowsFromWorksheetRows(rawRows) {
+    const now = new Date().toISOString();
+    return rawRows.map(row => {
+      const br = normalizeKey(rowValueByHints(row, ["BR", "SPXTN", "shipment_id", "tracking"]));
+      if (!br) return null;
+      const text = rowValueByHints(row, ["Tratativa analise", "Tratativa análise", "Tratativa anÃ¡lise", "Tratativa", "Treatment"]);
+      const billingText = rowValueByHints(row, ["Tratativa faturamento", "Faturamento"]);
+      const treatmentState = rowValueByHints(row, ["Situacao", "Situação", "SituaÃ§Ã£o", "Status da tratativa"]) || "Pendente";
+      const updatedAt = rowValueByHints(row, ["Atualizado em", "Atualizacao", "Atualização", "AtualizaÃ§Ã£o"]);
+      const billingUpdatedAt = rowValueByHints(row, ["Atualizado faturamento", "Atualizacao faturamento", "Atualização faturamento", "AtualizaÃ§Ã£o faturamento"]);
+      if (!text && !billingText && treatmentState === "Pendente") return null;
+      return {
+        br,
+        state: treatmentState,
+        text,
+        billingText,
+        updatedAt: updatedAt || now,
+        billingUpdatedAt: billingUpdatedAt || (billingText ? now : "")
+      };
+    }).filter(Boolean);
+  }
+
+  async function treatmentRowsFromFile(file) {
+    if (/\.json$/i.test(file.name)) {
+      const payload = JSON.parse(await file.text());
+      if (Array.isArray(payload)) return treatmentRowsFromWorksheetRows(payload);
+      if (payload?.treatments) return Object.values(payload.treatments);
+      if (payload?.payload?.treatments) return Object.values(payload.payload.treatments);
+      return [];
+    }
+    if (/\.csv$/i.test(file.name)) return treatmentRowsFromWorksheetRows(parseCsvRows(await file.text()));
+    if (/\.(xlsx|xls)$/i.test(file.name)) {
+      if (typeof XLSX === "undefined") throw new Error("A biblioteca de Excel nÃ£o carregou.");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
+      return workbook.SheetNames.flatMap(sheetName => {
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "", blankrows: false });
+        return treatmentRowsFromWorksheetRows(rows);
+      });
+    }
+    return [];
+  }
+
+  async function importTreatmentsFile(files) {
+    const selected = Array.from(files || []);
+    if (!selected.length) return;
+    try {
+      setSync("Importando tratativas...", "warn");
+      const imported = [];
+      for (const file of selected) imported.push(...await treatmentRowsFromFile(file));
+      if (!imported.length) throw new Error("Nenhuma tratativa valida foi encontrada no arquivo.");
+      imported.forEach(item => {
+        const key = normalizeKey(item.br);
+        const current = state.treatments[key] || { br: key, text: "", state: "Pendente" };
+        const next = {
+          ...current,
+          br: key,
+          state: clean(item.state) || current.state || "Pendente"
+        };
+        if (clean(item.text)) {
+          next.text = clean(item.text);
+          next.updatedAt = item.updatedAt || current.updatedAt || new Date().toISOString();
+        }
+        if (clean(item.billingText)) {
+          next.billingText = clean(item.billingText);
+          next.billingUpdatedAt = item.billingUpdatedAt || current.billingUpdatedAt || new Date().toISOString();
+          next.updatedAt = next.updatedAt || next.billingUpdatedAt;
+        }
+        state.treatments[key] = next;
+      });
+      hydrateRows();
+      saveLocal();
+      renderAll();
+      setSync(`${countFormat(imported.length)} tratativas importadas. Clique em sincronizar para enviar para a nuvem.`, "ok");
+    } catch (error) {
+      setSync(`Erro ao importar tratativas: ${error.message || error}`, "error");
+    } finally {
+      if (els.treatmentsFileInput) els.treatmentsFileInput.value = "";
+    }
+  }
+
   function exportBillingFormsExcel() {
     if (typeof XLSX === "undefined" || !XLSX.utils || !XLSX.writeFile) {
       setSync("A biblioteca de Excel não carregou.", "error");
@@ -2319,7 +2414,8 @@ ${managerRankingText()}
     els.exportViewBtn.addEventListener("click", () => exportCsv(exportRowsForCurrentView(), "pnr-visão-atual.csv"));
     els.exportTreatmentsBtn.addEventListener("click", exportSavedTreatments);
     els.exportTreatmentsWorklistBtn?.addEventListener("click", exportSavedTreatments);
-    els.cloudImportTreatmentsBtn.addEventListener("click", loadCloudTreatments);
+    els.cloudImportTreatmentsBtn.addEventListener("click", () => els.treatmentsFileInput?.click());
+    els.treatmentsFileInput?.addEventListener("change", event => importTreatmentsFile(event.target.files));
     els.cloudSyncTreatmentsBtn.addEventListener("click", saveTreatmentsCloud);
     els.cloudManualSaveBtn.addEventListener("click", () => {
       const br = normalizeKey(els.cloudManualBr.value);

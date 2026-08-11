@@ -117,10 +117,11 @@ svg { flex: 0 0 auto; }
 
 body.cloud-auth-locked {
   overflow: hidden;
+  background: #0D330E;
 }
 
 body.cloud-auth-locked .app {
-  filter: blur(3px);
+  visibility: hidden;
   pointer-events: none;
   user-select: none;
 }
@@ -136,8 +137,10 @@ body.cloud-auth-locked .app {
 }
 
 .cloud-auth-dialog::backdrop {
-  background: rgba(12, 18, 8, .66);
-  backdrop-filter: blur(4px);
+  background:
+    radial-gradient(circle at 50% 38%, rgba(228, 92, 16, .16), transparent 34%),
+    linear-gradient(160deg, #0D330E 0%, #071f09 52%, #050f06 100%);
+  backdrop-filter: none;
 }
 
 .cloud-auth-card {
