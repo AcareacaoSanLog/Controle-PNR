@@ -4997,6 +4997,21 @@ textarea,
   color: rgba(34, 51, 0, .58);
 }
 
+#reports .reports-sla-card {
+  padding: 10px 12px !important;
+}
+
+#reports .reports-sla-print-control {
+  grid-template-columns: minmax(180px, 240px) minmax(240px, max-content) minmax(220px, 1fr);
+  align-items: end;
+  background: rgba(236, 226, 206, .72);
+}
+
+#reports .reports-sla-print-control small {
+  align-self: center;
+  padding-bottom: 8px;
+}
+
 #reports .reports-list-card {
   min-width: 0;
   padding: 14px !important;
@@ -5051,8 +5066,35 @@ textarea,
 }
 
 #reports .reports-table td:nth-child(1),
-#reports .reports-table td:nth-child(4) {
+#reports .reports-table td:nth-child(2) {
   overflow-wrap: anywhere;
+}
+
+#reports .reports-table th:nth-child(1),
+#reports .reports-table td:nth-child(1) {
+  width: 30%;
+}
+
+#reports .reports-table th:nth-child(2),
+#reports .reports-table td:nth-child(2) {
+  width: 28%;
+}
+
+#reports .reports-table th:nth-child(3),
+#reports .reports-table td:nth-child(3),
+#reports .reports-table th:nth-child(4),
+#reports .reports-table td:nth-child(4) {
+  width: 16%;
+}
+
+#reports .reports-table th:nth-child(5),
+#reports .reports-table td:nth-child(5) {
+  width: 6%;
+}
+
+#reports .reports-table th:nth-child(6),
+#reports .reports-table td:nth-child(6) {
+  width: 4%;
 }
 
 #reports .reports-table tr:nth-child(odd) td {
@@ -5074,6 +5116,10 @@ textarea,
 @media (max-width: 1280px) {
   #reports .reports-toolbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #reports .reports-sla-print-control {
+    grid-template-columns: 1fr;
   }
 
   #reports .reports-toolbar .secondary-button {

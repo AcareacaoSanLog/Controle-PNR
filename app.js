@@ -160,6 +160,10 @@
     reportsRowsCount: document.getElementById("reportsRowsCount"),
     reportsRanking: document.getElementById("reportsRanking"),
     reportsBody: document.getElementById("reportsBody"),
+    reportsSlaPrintDate: document.getElementById("reportsSlaPrintDate"),
+    applyReportsSlaPrintBtn: document.getElementById("applyReportsSlaPrintBtn"),
+    resetReportsSlaPrintBtn: document.getElementById("resetReportsSlaPrintBtn"),
+    reportsSlaPrintStatus: document.getElementById("reportsSlaPrintStatus"),
     copyManagerMessageBtn: document.getElementById("copyManagerMessageBtn"),
     assignedSlaPrintDate: document.getElementById("assignedSlaPrintDate"),
     applyAssignedSlaPrintBtn: document.getElementById("applyAssignedSlaPrintBtn"),
@@ -950,6 +954,7 @@
       const visible = reportsFilteredRows().length;
       const parts = [`Tratativas informes: ${countFormat(total)} PNRs`];
       if (visible !== total) parts.push(`exibindo ${countFormat(visible)} nos filtros`);
+      if (assignedSlaPrintDate) parts.push(`SLA temporário das atribuídas: ${dateOnlyLabel(assignedSlaPrintLabel(), "Sem SLA")}`);
       els.panelSummary.textContent = parts.join(" | ");
       return;
     }
@@ -1008,30 +1013,43 @@
     return dateInputToSlaLabel(assignedSlaPrintDate);
   }
 
+  function setAssignedSlaPrintStatus(text) {
+    if (els.assignedSlaPrintStatus) els.assignedSlaPrintStatus.textContent = text;
+    if (els.reportsSlaPrintStatus) els.reportsSlaPrintStatus.textContent = text;
+  }
+
+  function syncAssignedSlaPrintInputs() {
+    [els.assignedSlaPrintDate, els.reportsSlaPrintDate].forEach(input => {
+      if (input) input.value = assignedSlaPrintDate;
+    });
+  }
+
   function displaySla(row) {
-    return state.panel === "assigned" && assignedSlaPrintDate && hasAssignedDriver(row)
+    return ["assigned", "reports"].includes(state.panel) && assignedSlaPrintDate && hasAssignedDriver(row)
       ? assignedSlaPrintLabel()
       : row.sla;
   }
 
-  function applyAssignedSlaPrint() {
-    const value = clean(els.assignedSlaPrintDate?.value);
+  function applyAssignedSlaPrint(source = "manager") {
+    const sourceInput = source === "reports" ? els.reportsSlaPrintDate : els.assignedSlaPrintDate;
+    const value = clean(sourceInput?.value || els.assignedSlaPrintDate?.value || els.reportsSlaPrintDate?.value);
     if (!value) {
       setSync("Escolha uma data para aplicar no SLA temporário.", "warn");
       return;
     }
     assignedSlaPrintDate = value;
-    if (els.assignedSlaPrintStatus) els.assignedSlaPrintStatus.textContent = `SLA temporário ativo: ${dateOnlyLabel(assignedSlaPrintLabel(), "Sem SLA")}.`;
+    syncAssignedSlaPrintInputs();
+    setAssignedSlaPrintStatus(`SLA temporário ativo: ${dateOnlyLabel(assignedSlaPrintLabel(), "Sem SLA")}.`);
     renderAll();
-    setSync("SLA temporário aplicado somente em PNR Atribuídas.", "ok");
+    setSync("SLA temporário aplicado em PNR Atribuídas e Tratativas informes.", "ok");
   }
 
   function resetAssignedSlaPrint() {
     assignedSlaPrintDate = "";
-    if (els.assignedSlaPrintDate) els.assignedSlaPrintDate.value = "";
-    if (els.assignedSlaPrintStatus) els.assignedSlaPrintStatus.textContent = "Não altera a planilha importada.";
+    syncAssignedSlaPrintInputs();
+    setAssignedSlaPrintStatus("Não altera a planilha importada.");
     renderAll();
-    setSync("SLA real restaurado em PNR Atribuídas.", "ok");
+    setSync("SLA real restaurado em PNR Atribuídas e Tratativas informes.", "ok");
   }
 
   function managerDefaultDate() {
@@ -1217,6 +1235,16 @@ ${managerRankingText()}
     return [normalizeKey(row.br), row.status, row.driver, rowCreatedDay(row), dateOnlyLabel(displaySla(row), "")].join("|");
   }
 
+  function reportGroupKey(row) {
+    return [
+      reportRowType(row),
+      row.driver,
+      clean(reportTreatmentText(row)) || "Sem tratativa",
+      rowCreatedDay(row),
+      dateOnlyLabel(displaySla(row), "")
+    ].join("|");
+  }
+
   function reportsBaseRows() {
     return state.rows.filter(row => ["created", "assigned", "analysis", "reverted", "billing"].includes(reportRowType(row)));
   }
@@ -1241,6 +1269,35 @@ ${managerRankingText()}
       return [row.driver, treatment]
         .some(value => lower(value).includes(search));
     }).sort((a, b) => dayRank(rowCreatedDay(b)) - dayRank(rowCreatedDay(a)) || a.driver.localeCompare(b.driver, "pt-BR") || a.br.localeCompare(b.br, "pt-BR"));
+  }
+
+  function reportsGroupedRows(rows = reportsFilteredRows()) {
+    const groups = new Map();
+    rows.forEach(row => {
+      const key = reportGroupKey(row);
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          driver: row.driver,
+          treatment: clean(reportTreatmentText(row)) || "Sem tratativa",
+          created: row.created,
+          sla: displaySla(row),
+          qty: 0,
+          rows: []
+        });
+      }
+      const group = groups.get(key);
+      group.qty += 1;
+      group.rows.push(row);
+      group.created = earliestDate(group.created, row.created);
+      group.sla = earliestDate(group.sla, displaySla(row));
+    });
+    return Array.from(groups.values()).sort((a, b) =>
+      dayRank(dateOnlyLabel(b.created, "")) - dayRank(dateOnlyLabel(a.created, "")) ||
+      a.driver.localeCompare(b.driver, "pt-BR") ||
+      a.treatment.localeCompare(b.treatment, "pt-BR") ||
+      dateRank(a.sla) - dateRank(b.sla)
+    );
   }
 
   function syncReportsFilters() {
@@ -1275,37 +1332,33 @@ ${managerRankingText()}
     const withDriver = selectedDrivers.length ? ` | Entregadores: ${selectedDrivers.join(", ")}` : "";
     if (els.reportsRowsCount) els.reportsRowsCount.textContent = `${countFormat(rows.length)} PNR${rows.length === 1 ? "" : "s"} encontradas | ${typeLabel}${withDay}${withDriver}`;
     if (!rows.length) {
-      els.reportsBody.innerHTML = `<tr><td class="detail-empty-row" colspan="5">Nenhuma PNR encontrada nos filtros atuais.</td></tr>`;
+      els.reportsBody.innerHTML = `<tr><td class="detail-empty-row" colspan="6">Nenhuma PNR encontrada nos filtros atuais.</td></tr>`;
       if (window.lucide) window.lucide.createIcons();
       return;
     }
-    els.reportsBody.innerHTML = rows.map(row => {
-      const treatment = clean(reportTreatmentText(row)) || "Sem tratativa";
-      return `
+    const groups = reportsGroupedRows(rows);
+    els.reportsBody.innerHTML = groups.map(group => `
         <tr>
-          <td>${html(row.driver)}</td>
-          <td>${html(dateOnlyLabel(row.created, "Sem data"))}</td>
-          <td>${html(dateOnlyLabel(displaySla(row), "Sem SLA"))}</td>
-          <td>${html(treatment)}</td>
-          <td><button class="open-group-button" data-report-open="${html(reportRowKey(row))}" type="button">Abrir</button></td>
+          <td>${html(group.driver)}</td>
+          <td>${html(group.treatment)}</td>
+          <td>${html(dateOnlyLabel(group.created, "Sem data"))}</td>
+          <td>${html(dateOnlyLabel(group.sla, "Sem SLA"))}</td>
+          <td><strong>${countFormat(group.qty)}</strong></td>
+          <td><button class="open-group-button" data-report-open="${html(group.key)}" type="button">Abrir</button></td>
         </tr>
-      `;
-    }).join("");
+      `).join("");
     if (window.lucide) window.lucide.createIcons();
   }
 
   function openReportDetail(key) {
-    const row = reportsFilteredRows().find(item => reportRowKey(item) === key) || reportsBaseRows().find(item => reportRowKey(item) === key);
-    if (!row) return;
+    const group = reportsGroupedRows().find(item => item.key === key) || reportsGroupedRows(reportsBaseRows()).find(item => item.key === key);
+    const rows = group?.rows || [];
+    if (!rows.length) return;
     if (els.detailModal.parentElement !== document.body) document.body.appendChild(els.detailModal);
-    const isBilling = reportRowType(row) === "billing";
-    const treatmentText = reportTreatmentText(row);
-    const treatmentUpdatedAt = reportTreatmentUpdatedAt(row);
-    const treatmentState = isBilling ? (treatmentText ? "Tratado" : "Pendente") : rowTreatmentState(row, reportRowType(row));
-    const treatmentPatch = isBilling ? "billingText" : "text";
+    const allBilling = rows.every(row => reportRowType(row) === "billing");
     els.detailModal.classList.add("report-detail-mode");
-    els.detailModalTitle.textContent = row.br;
-    els.detailModalCount.textContent = `${row.status} | ${row.driver || "Sem entregador"}`;
+    els.detailModalTitle.textContent = group.driver || "Sem entregador";
+    els.detailModalCount.textContent = `${countFormat(rows.length)} PNR${rows.length === 1 ? "" : "s"} encontradas | ${group.treatment}`;
     els.detailTableHead.innerHTML = `
       <tr>
         <th>BR</th>
@@ -1314,10 +1367,16 @@ ${managerRankingText()}
         <th>Motivo</th>
         <th>SLA</th>
         <th>Tratativa</th>
-        ${isBilling ? "" : "<th>Situação</th>"}
+        ${allBilling ? "" : "<th>Situação</th>"}
       </tr>
     `;
-    els.rowsBody.innerHTML = `
+    els.rowsBody.innerHTML = rows.map(row => {
+      const isBilling = reportRowType(row) === "billing";
+      const treatmentText = reportTreatmentText(row);
+      const treatmentUpdatedAt = reportTreatmentUpdatedAt(row);
+      const treatmentState = isBilling ? (treatmentText ? "Tratado" : "Pendente") : rowTreatmentState(row, reportRowType(row));
+      const treatmentPatch = isBilling ? "billingText" : "text";
+      return `
       <tr>
         <td><strong>${html(row.br)}</strong></td>
         <td><span class="detail-status-pill">${html(row.status)}</span></td>
@@ -1330,13 +1389,14 @@ ${managerRankingText()}
             <div class="detail-muted">${treatmentUpdatedAt ? `Atualizado em ${html(dateLabel(treatmentUpdatedAt))}` : "Sem registro salvo"}</div>
           </div>
         </td>
-        ${isBilling ? "" : `<td>
+        ${allBilling ? "" : isBilling ? "<td></td>" : `<td>
           <select class="detail-state-select" data-state="${html(row.br)}">
             ${treatmentStateOptions().map(item => `<option value="${item}" ${treatmentState === item ? "selected" : ""}>${item}</option>`).join("")}
           </select>
         </td>`}
       </tr>
     `;
+    }).join("");
     els.detailModal.showModal();
   }
 
@@ -2588,8 +2648,10 @@ ${managerRankingText()}
       if (!button) return;
       openReportDetail(button.dataset.reportOpen);
     });
-    els.applyAssignedSlaPrintBtn?.addEventListener("click", applyAssignedSlaPrint);
+    els.applyAssignedSlaPrintBtn?.addEventListener("click", () => applyAssignedSlaPrint("manager"));
     els.resetAssignedSlaPrintBtn?.addEventListener("click", resetAssignedSlaPrint);
+    els.applyReportsSlaPrintBtn?.addEventListener("click", () => applyAssignedSlaPrint("reports"));
+    els.resetReportsSlaPrintBtn?.addEventListener("click", resetAssignedSlaPrint);
     els.assignCreatedBtn?.addEventListener("click", assignAllCreatedRows);
     els.exportFormsBtn?.addEventListener("click", exportBillingFormsExcel);
     els.searchInput.addEventListener("input", event => { state.filters.search = event.target.value; state.filters.group = ""; renderAll(); });
