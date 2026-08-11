@@ -4440,3 +4440,213 @@ textarea,
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Polimento executivo: Gestor e blocos inferiores da visão geral. */
+.manager-side-card {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.manager-side-card > h3 {
+  margin: 0;
+  color: #223300;
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.manager-stats {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px !important;
+  margin-top: 0 !important;
+}
+
+.manager-stat {
+  position: relative;
+  min-height: 88px;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 14px 18px !important;
+  overflow: hidden;
+  border: 1px solid rgba(75, 93, 22, .22) !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(135deg, rgba(246, 244, 241, .82), rgba(236, 226, 206, .72)),
+    #ECE2CE !important;
+  box-shadow: inset 4px 0 0 rgba(75, 93, 22, .72), 0 10px 20px rgba(34, 51, 0, .08);
+}
+
+.manager-stat::after {
+  content: "";
+  position: absolute;
+  right: -24px;
+  top: -28px;
+  width: 82px;
+  height: 82px;
+  border-radius: 999px;
+  background: rgba(75, 93, 22, .08);
+}
+
+.manager-stat span {
+  position: relative;
+  z-index: 1;
+  color: #4B5D16 !important;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.manager-stat strong {
+  position: relative;
+  z-index: 1;
+  min-width: 54px;
+  min-height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(75, 93, 22, .1);
+  color: #223300 !important;
+  font-size: 28px !important;
+  line-height: 1;
+}
+
+.manager-stat:nth-child(1),
+.manager-stat:nth-child(8) {
+  box-shadow: inset 4px 0 0 #4B5D16, 0 10px 20px rgba(34, 51, 0, .08);
+}
+
+.manager-stat:nth-child(2),
+.manager-stat:nth-child(4),
+.manager-stat:nth-child(7) {
+  box-shadow: inset 4px 0 0 #D19A18, 0 10px 20px rgba(34, 51, 0, .08);
+}
+
+.manager-stat:nth-child(3),
+.manager-stat:nth-child(5),
+.manager-stat:nth-child(6) {
+  box-shadow: inset 4px 0 0 #E45C10, 0 10px 20px rgba(34, 51, 0, .08);
+}
+
+.manager-stat:nth-child(3) strong,
+.manager-stat:nth-child(5) strong,
+.manager-stat:nth-child(6) strong {
+  background: rgba(228, 92, 16, .12);
+  color: #E45C10 !important;
+}
+
+.manager-stat:nth-child(2) strong,
+.manager-stat:nth-child(4) strong,
+.manager-stat:nth-child(7) strong {
+  background: rgba(242, 182, 53, .18);
+  color: #A87508 !important;
+}
+
+.manager-stat:nth-child(8) {
+  grid-column: 1 / -1;
+  min-height: 76px;
+}
+
+.manager-ranking-title {
+  margin: 4px 0 0 !important;
+  padding-top: 4px;
+  border-top: 1px solid rgba(75, 93, 22, .18);
+}
+
+.manager-ranking {
+  gap: 7px !important;
+}
+
+.manager-ranking-row,
+.manager-ranking-empty {
+  background: rgba(246, 244, 241, .56) !important;
+  border-color: rgba(75, 93, 22, .18) !important;
+}
+
+#overview .overview-grid.executive-grid {
+  grid-template-columns: minmax(360px, .95fr) minmax(420px, 1.05fr) !important;
+  align-items: start;
+  gap: 14px;
+}
+
+#overview .overview-grid.executive-grid .surface {
+  min-height: auto;
+}
+
+#overview .status-distribution,
+#overview .overview-grid.executive-grid > .surface:nth-child(2) {
+  height: 100%;
+}
+
+#overview .status-summary {
+  grid-template-columns: minmax(170px, 240px) minmax(0, 1fr) !important;
+  gap: 18px;
+  align-items: center;
+}
+
+#overview .status-summary .donut-chart {
+  justify-self: center;
+}
+
+#overview .bar-list.compact-bars {
+  gap: 9px;
+}
+
+#overview .bar-row {
+  min-height: 30px;
+}
+
+#overview .surface.wide {
+  grid-column: 1 / -1 !important;
+}
+
+#overview .driver-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)) !important;
+}
+
+#overview .driver-row {
+  min-height: 58px;
+  background: rgba(246, 244, 241, .54);
+  border-color: rgba(75, 93, 22, .18);
+  box-shadow: inset 4px 0 0 rgba(75, 93, 22, .35);
+}
+
+#overview .overview-control-grid {
+  align-items: start;
+}
+
+#overview .funnel-card,
+#overview .deadline-card {
+  min-height: 0 !important;
+}
+
+#overview .deadline-grid {
+  align-content: start;
+}
+
+#overview .deadline-item {
+  min-height: 92px !important;
+}
+
+@media (max-width: 1320px) {
+  #overview .overview-grid.executive-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  #overview .status-summary {
+    grid-template-columns: minmax(160px, 220px) minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 820px) {
+  .manager-stats,
+  #overview .status-summary {
+    grid-template-columns: 1fr !important;
+  }
+
+  .manager-stat:nth-child(8) {
+    grid-column: auto;
+  }
+}
