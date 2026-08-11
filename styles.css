@@ -4650,3 +4650,61 @@ textarea,
     grid-column: auto;
   }
 }
+
+/* Sidebar fixa: a coluna lateral inteira permanece verde durante qualquer rolagem. */
+:root {
+  --sidebar-width: 260px;
+}
+
+.app {
+  background:
+    linear-gradient(
+      90deg,
+      #0D330E 0,
+      #0D330E var(--sidebar-width),
+      transparent var(--sidebar-width),
+      transparent 100%
+    ) !important;
+  align-items: stretch;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  align-self: stretch;
+  background: #0D330E !important;
+}
+
+@media (min-width: 981px) {
+  .app {
+    display: block !important;
+    padding-left: var(--sidebar-width);
+    background: transparent !important;
+  }
+
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh;
+    min-height: 100vh;
+    z-index: 100;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .main {
+    min-height: 100vh;
+  }
+}
+
+@media (max-width: 980px) {
+  .app {
+    background: transparent !important;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+  }
+}
