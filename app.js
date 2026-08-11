@@ -38,6 +38,7 @@
 
   let treatmentCloudTimer = null;
   let assignedSlaPrintDate = "";
+  let reportsSlaPrintDate = "";
   let currentCloudSession = null;
   let pendingCloudLogin = null;
   let cloudAutoLoadPromise = null;
@@ -954,7 +955,7 @@
       const visible = reportsFilteredRows().length;
       const parts = [`Tratativas informes: ${countFormat(total)} PNRs`];
       if (visible !== total) parts.push(`exibindo ${countFormat(visible)} nos filtros`);
-      if (assignedSlaPrintDate) parts.push(`SLA temporário das atribuídas: ${dateOnlyLabel(assignedSlaPrintLabel(), "Sem SLA")}`);
+      if (reportsSlaPrintDate) parts.push(`SLA temporário dos informes: ${dateOnlyLabel(reportsSlaPrintLabel(), "Sem SLA")}`);
       els.panelSummary.textContent = parts.join(" | ");
       return;
     }
@@ -1013,26 +1014,38 @@
     return dateInputToSlaLabel(assignedSlaPrintDate);
   }
 
+  function reportsSlaPrintLabel() {
+    return dateInputToSlaLabel(reportsSlaPrintDate);
+  }
+
   function setAssignedSlaPrintStatus(text) {
     if (els.assignedSlaPrintStatus) els.assignedSlaPrintStatus.textContent = text;
+  }
+
+  function setReportsSlaPrintStatus(text) {
     if (els.reportsSlaPrintStatus) els.reportsSlaPrintStatus.textContent = text;
   }
 
   function syncAssignedSlaPrintInputs() {
-    [els.assignedSlaPrintDate, els.reportsSlaPrintDate].forEach(input => {
-      if (input) input.value = assignedSlaPrintDate;
-    });
+    if (els.assignedSlaPrintDate) els.assignedSlaPrintDate.value = assignedSlaPrintDate;
+  }
+
+  function syncReportsSlaPrintInput() {
+    if (els.reportsSlaPrintDate) els.reportsSlaPrintDate.value = reportsSlaPrintDate;
   }
 
   function displaySla(row) {
-    return ["assigned", "reports"].includes(state.panel) && assignedSlaPrintDate && hasAssignedDriver(row)
+    return state.panel === "assigned" && assignedSlaPrintDate && hasAssignedDriver(row)
       ? assignedSlaPrintLabel()
       : row.sla;
   }
 
-  function applyAssignedSlaPrint(source = "manager") {
-    const sourceInput = source === "reports" ? els.reportsSlaPrintDate : els.assignedSlaPrintDate;
-    const value = clean(sourceInput?.value || els.assignedSlaPrintDate?.value || els.reportsSlaPrintDate?.value);
+  function displayReportsSla(row) {
+    return reportsSlaPrintDate ? reportsSlaPrintLabel() : row.sla;
+  }
+
+  function applyAssignedSlaPrint() {
+    const value = clean(els.assignedSlaPrintDate?.value);
     if (!value) {
       setSync("Escolha uma data para aplicar no SLA temporário.", "warn");
       return;
@@ -1041,7 +1054,7 @@
     syncAssignedSlaPrintInputs();
     setAssignedSlaPrintStatus(`SLA temporário ativo: ${dateOnlyLabel(assignedSlaPrintLabel(), "Sem SLA")}.`);
     renderAll();
-    setSync("SLA temporário aplicado em PNR Atribuídas e Tratativas informes.", "ok");
+    setSync("SLA temporário aplicado somente em PNR Atribuídas.", "ok");
   }
 
   function resetAssignedSlaPrint() {
@@ -1049,7 +1062,30 @@
     syncAssignedSlaPrintInputs();
     setAssignedSlaPrintStatus("Não altera a planilha importada.");
     renderAll();
-    setSync("SLA real restaurado em PNR Atribuídas e Tratativas informes.", "ok");
+    setSync("SLA real restaurado em PNR Atribuídas.", "ok");
+  }
+
+  function applyReportsSlaPrint() {
+    const value = clean(els.reportsSlaPrintDate?.value);
+    if (!value) {
+      setSync("Escolha uma data para aplicar no SLA temporário dos informes.", "warn");
+      return;
+    }
+    reportsSlaPrintDate = value;
+    syncReportsSlaPrintInput();
+    setReportsSlaPrintStatus(`SLA temporário ativo nos informes: ${dateOnlyLabel(reportsSlaPrintLabel(), "Sem SLA")}.`);
+    renderReports();
+    renderPanelSummary();
+    setSync("SLA temporário aplicado somente em Tratativas informes.", "ok");
+  }
+
+  function resetReportsSlaPrint() {
+    reportsSlaPrintDate = "";
+    syncReportsSlaPrintInput();
+    setReportsSlaPrintStatus("Não altera a planilha importada.");
+    renderReports();
+    renderPanelSummary();
+    setSync("SLA real restaurado em Tratativas informes.", "ok");
   }
 
   function managerDefaultDate() {
@@ -1232,7 +1268,7 @@ ${managerRankingText()}
   }
 
   function reportRowKey(row) {
-    return [normalizeKey(row.br), row.status, row.driver, rowCreatedDay(row), dateOnlyLabel(displaySla(row), "")].join("|");
+    return [normalizeKey(row.br), row.status, row.driver, rowCreatedDay(row), dateOnlyLabel(displayReportsSla(row), "")].join("|");
   }
 
   function reportGroupKey(row) {
@@ -1241,7 +1277,7 @@ ${managerRankingText()}
       row.driver,
       clean(reportTreatmentText(row)) || "Sem tratativa",
       rowCreatedDay(row),
-      dateOnlyLabel(displaySla(row), "")
+      dateOnlyLabel(displayReportsSla(row), "")
     ].join("|");
   }
 
@@ -1281,7 +1317,7 @@ ${managerRankingText()}
           driver: row.driver,
           treatment: clean(reportTreatmentText(row)) || "Sem tratativa",
           created: row.created,
-          sla: displaySla(row),
+          sla: displayReportsSla(row),
           qty: 0,
           rows: []
         });
@@ -1290,7 +1326,7 @@ ${managerRankingText()}
       group.qty += 1;
       group.rows.push(row);
       group.created = earliestDate(group.created, row.created);
-      group.sla = earliestDate(group.sla, displaySla(row));
+      group.sla = earliestDate(group.sla, displayReportsSla(row));
     });
     return Array.from(groups.values()).sort((a, b) =>
       dayRank(dateOnlyLabel(b.created, "")) - dayRank(dateOnlyLabel(a.created, "")) ||
@@ -1382,7 +1418,7 @@ ${managerRankingText()}
         <td><span class="detail-status-pill">${html(row.status)}</span></td>
         <td>${html(row.driver)}</td>
         <td>${html(row.reason || "Sem motivo")}</td>
-        <td><strong>${html(displaySla(row) || "Sem SLA")}</strong><div class="detail-muted">${html(row.created ? `Criado em ${row.created}` : "")}</div></td>
+        <td><strong>${html(displayReportsSla(row) || "Sem SLA")}</strong><div class="detail-muted">${html(row.created ? `Criado em ${row.created}` : "")}</div></td>
         <td>
           <div class="detail-treatment-box">
             <textarea data-treatment="${html(row.br)}" data-treatment-field="${html(treatmentPatch)}" placeholder="Descreva a tratativa realizada">${html(treatmentText)}</textarea>
@@ -1911,6 +1947,8 @@ ${managerRankingText()}
       if (!checkbox) return;
       const key = container.dataset.filter;
       if (!key) return;
+      const menuBeforeRender = container.querySelector(".multi-filter-menu");
+      const scrollTopBeforeRender = menuBeforeRender?.scrollTop || 0;
       const scope = container.dataset.scope === "overview"
         ? state.overviewModal
         : container.dataset.scope === "reports"
@@ -1934,6 +1972,8 @@ ${managerRankingText()}
         renderAll();
       }
       openMultiFilter(container);
+      const menuAfterRender = container.querySelector(".multi-filter-menu");
+      if (menuAfterRender) menuAfterRender.scrollTop = scrollTopBeforeRender;
     });
   }
 
@@ -2648,10 +2688,10 @@ ${managerRankingText()}
       if (!button) return;
       openReportDetail(button.dataset.reportOpen);
     });
-    els.applyAssignedSlaPrintBtn?.addEventListener("click", () => applyAssignedSlaPrint("manager"));
+    els.applyAssignedSlaPrintBtn?.addEventListener("click", applyAssignedSlaPrint);
     els.resetAssignedSlaPrintBtn?.addEventListener("click", resetAssignedSlaPrint);
-    els.applyReportsSlaPrintBtn?.addEventListener("click", () => applyAssignedSlaPrint("reports"));
-    els.resetReportsSlaPrintBtn?.addEventListener("click", resetAssignedSlaPrint);
+    els.applyReportsSlaPrintBtn?.addEventListener("click", applyReportsSlaPrint);
+    els.resetReportsSlaPrintBtn?.addEventListener("click", resetReportsSlaPrint);
     els.assignCreatedBtn?.addEventListener("click", assignAllCreatedRows);
     els.exportFormsBtn?.addEventListener("click", exportBillingFormsExcel);
     els.searchInput.addEventListener("input", event => { state.filters.search = event.target.value; state.filters.group = ""; renderAll(); });
