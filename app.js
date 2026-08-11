@@ -1238,7 +1238,7 @@ ${managerRankingText()}
       if (onlyWithTreatment && !clean(treatment)) return false;
       if (onlyWithoutTreatment && clean(treatment)) return false;
       if (!search) return true;
-      return [row.driver, row.reason, treatment]
+      return [row.driver, treatment]
         .some(value => lower(value).includes(search));
     }).sort((a, b) => dayRank(rowCreatedDay(b)) - dayRank(rowCreatedDay(a)) || a.driver.localeCompare(b.driver, "pt-BR") || a.br.localeCompare(b.br, "pt-BR"));
   }
@@ -1275,7 +1275,7 @@ ${managerRankingText()}
     const withDriver = selectedDrivers.length ? ` | Entregadores: ${selectedDrivers.join(", ")}` : "";
     if (els.reportsRowsCount) els.reportsRowsCount.textContent = `${countFormat(rows.length)} PNR${rows.length === 1 ? "" : "s"} encontradas | ${typeLabel}${withDay}${withDriver}`;
     if (!rows.length) {
-      els.reportsBody.innerHTML = `<tr><td class="detail-empty-row" colspan="6">Nenhuma PNR encontrada nos filtros atuais.</td></tr>`;
+      els.reportsBody.innerHTML = `<tr><td class="detail-empty-row" colspan="5">Nenhuma PNR encontrada nos filtros atuais.</td></tr>`;
       if (window.lucide) window.lucide.createIcons();
       return;
     }
@@ -1284,7 +1284,6 @@ ${managerRankingText()}
       return `
         <tr>
           <td>${html(row.driver)}</td>
-          <td>${html(row.reason || "Sem motivo")}</td>
           <td>${html(dateOnlyLabel(row.created, "Sem data"))}</td>
           <td>${html(dateOnlyLabel(displaySla(row), "Sem SLA"))}</td>
           <td>${html(treatment)}</td>

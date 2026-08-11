@@ -5026,7 +5026,7 @@ textarea,
 
 #reports .reports-table {
   width: 100%;
-  min-width: 1080px;
+  min-width: 880px;
   border-collapse: collapse;
 }
 
@@ -5051,9 +5051,7 @@ textarea,
 }
 
 #reports .reports-table td:nth-child(1),
-#reports .reports-table td:nth-child(3),
-#reports .reports-table td:nth-child(4),
-#reports .reports-table td:nth-child(7) {
+#reports .reports-table td:nth-child(4) {
   overflow-wrap: anywhere;
 }
 
@@ -5089,6 +5087,6 @@ textarea,
   }
 
   #reports .reports-table {
-    min-width: 860px;
+    min-width: 720px;
   }
 }
