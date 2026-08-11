@@ -1243,11 +1243,27 @@ ${managerRankingText()}
     ];
   }
 
-  function reportTreatmentOptions() {
-    return [
-      { value: "with", label: "Com tratativa" },
-      { value: "without", label: "Sem tratativa" }
-    ];
+  function reportTreatmentLabel(row) {
+    return clean(reportTreatmentText(row)) || "Sem tratativa";
+  }
+
+  function reportTreatmentValue(row) {
+    return clean(reportTreatmentText(row)) || "__without_treatment__";
+  }
+
+  function reportTreatmentOptions(rows = reportsBaseRows()) {
+    const map = new Map();
+    rows.forEach(row => {
+      const value = reportTreatmentValue(row);
+      if (!map.has(value)) map.set(value, reportTreatmentLabel(row));
+    });
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => {
+        if (a.value === "__without_treatment__") return -1;
+        if (b.value === "__without_treatment__") return 1;
+        return a.label.localeCompare(b.label, "pt-BR");
+      });
   }
 
   function reportRowType(row) {
@@ -1290,8 +1306,6 @@ ${managerRankingText()}
     const days = selectedValues(state.reports.days);
     const drivers = selectedValues(state.reports.drivers);
     const treatments = selectedValues(state.reports.treatments);
-    const onlyWithTreatment = treatments.includes("with") && !treatments.includes("without");
-    const onlyWithoutTreatment = treatments.includes("without") && !treatments.includes("with");
     const search = lower(state.reports.search);
     return reportsBaseRows().filter(row => {
       const rowType = reportRowType(row);
@@ -1299,8 +1313,7 @@ ${managerRankingText()}
       if (types.length && !types.includes(rowType)) return false;
       if (days.length && !days.includes(rowCreatedDay(row))) return false;
       if (drivers.length && !drivers.includes(row.driver)) return false;
-      if (onlyWithTreatment && !clean(treatment)) return false;
-      if (onlyWithoutTreatment && clean(treatment)) return false;
+      if (treatments.length && !treatments.includes(reportTreatmentValue(row))) return false;
       if (!search) return true;
       return [row.driver, treatment]
         .some(value => lower(value).includes(search));
@@ -1346,8 +1359,10 @@ ${managerRankingText()}
     const selectedDays = selectedValues(state.reports.days);
     const dayRows = selectedDays.length ? typeRows.filter(row => selectedDays.includes(rowCreatedDay(row))) : typeRows;
     const driverOptions = counter(dayRows, "driver").map(([label]) => ({ value: label, label }));
-    const treatmentOptions = reportTreatmentOptions();
     state.reports.drivers = validSelections(state.reports.drivers, driverOptions);
+    const selectedDrivers = selectedValues(state.reports.drivers);
+    const treatmentRows = selectedDrivers.length ? dayRows.filter(row => selectedDrivers.includes(row.driver)) : dayRows;
+    const treatmentOptions = reportTreatmentOptions(treatmentRows);
     state.reports.treatments = validSelections(state.reports.treatments, treatmentOptions);
     renderMultiFilter(els.reportsTypeFilter, typeOptions, state.reports.types, "Todos os tipos");
     renderMultiFilter(els.reportsDayFilter, dayOptions, state.reports.days, "Todos os dias");
