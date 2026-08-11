@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Torre de Controle PNR</title>
+  <link rel="stylesheet" href="styles.css?v=20260810-03">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">SANLOG</div>
+        <div>
+          <h1>TORRE DE CONTROLE PNR</h1>
+          <p>Gestão Operacional Shopee</p>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Navegação principal">
+        <button class="nav-button active" data-panel="overview" type="button"><i data-lucide="layout-dashboard"></i><span>Visão geral</span></button>
+        <button class="nav-button" data-panel="created" type="button"><i data-lucide="file-plus-2"></i><span>PNR Criadas</span></button>
+        <button class="nav-button" data-panel="assigned" type="button"><i data-lucide="user-check"></i><span>PNR Atribuídas</span></button>
+        <button class="nav-button" data-panel="analysis" type="button"><i data-lucide="activity"></i><span>PNR em Análise</span></button>
+        <button class="nav-button" data-panel="reverted" type="button"><i data-lucide="rotate-ccw"></i><span>PNR Revertidas</span></button>
+        <button class="nav-button" data-panel="billingForms" type="button"><i data-lucide="clipboard-list"></i><span>Faturamento Forms</span></button>
+        <button class="nav-button" data-panel="billing" type="button"><i data-lucide="receipt"></i><span>Faturamento PNR</span></button>
+        <button class="nav-button" data-panel="worklist" type="button"><i data-lucide="list-checks"></i><span>Tratativas</span></button>
+        <button class="nav-button" data-panel="manager" type="button"><i data-lucide="send"></i><span>Gestor</span></button>
+        <button class="nav-button" data-panel="history" type="button"><i data-lucide="history"></i><span>Histórico</span></button>
+      </nav>
+
+      <div class="side-status">
+        <span class="status-dot"></span>
+        <div>
+          <strong id="sideTotal">Sem importação</strong>
+          <small id="sideSaved">Tratativas locais ativas</small>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Base XPT_BA_Teixeira de Freitas_03</p>
+          <h2 id="panelTitle">Visão geral</h2>
+          <p class="panel-summary" id="panelSummary">Aguardando importação.</p>
+        </div>
+        <div class="actions">
+          <button class="icon-button" id="saveCloudBtn" type="button" title="Salvar na nuvem" aria-label="Salvar na nuvem"><i data-lucide="cloud-upload"></i></button>
+          <button class="icon-button" id="loadCloudBtn" type="button" title="Carregar da nuvem" aria-label="Carregar da nuvem"><i data-lucide="cloud-download"></i></button>
+          <button class="icon-button" id="exportViewBtn" type="button" title="Exportar visão atual" aria-label="Exportar visão atual"><i data-lucide="download"></i></button>
+          <button class="secondary-button" id="exportFormsBtn" type="button" hidden><i data-lucide="file-spreadsheet"></i><span>Exportar Forms</span></button>
+          <label class="import-button">
+            <i data-lucide="upload-cloud"></i>
+            <span>Importar planilha</span>
+            <input id="fileInput" type="file" multiple accept=".csv,.xlsx,.xls,.zip">
+          </label>
+        </div>
+      </header>
+
+      <div class="sync-line" id="syncLine" hidden></div>
+
+      <section class="panel active" id="overview">
+        <section class="overview-hero">
+          <div class="overview-title-block">
+            <span>Visão executiva</span>
+            <h3>Painel operacional PNR</h3>
+            <p>Leitura rápida da fila: pendências abertas, status críticos, avanço das tratativas e pressão de SLA.</p>
+          </div>
+          <button class="overview-health" data-kpi="treated" type="button">
+            <span>Índice tratado</span>
+            <strong id="overviewTreatmentRate">0%</strong>
+            <small id="overviewTreatmentText">Aguardando importação.</small>
+          </button>
+        </section>
+
+        <div class="priority-grid" id="kpis"></div>
+
+        <div class="overview-control-grid">
+          <section class="surface funnel-card">
+            <header class="section-head">
+              <h3>O que precisa de atenção</h3>
+              <button class="text-button" data-kpi="pending" type="button">Ver pendências</button>
+            </header>
+            <div class="funnel-steps" id="funnelSteps"></div>
+          </section>
+
+          <section class="surface deadline-card">
+            <header class="section-head">
+              <h3>SLA operacional</h3>
+              <button class="text-button" data-kpi="pending" type="button">Ver pendentes</button>
+            </header>
+            <div class="deadline-grid" id="deadlineCards"></div>
+          </section>
+        </div>
+
+        <dialog class="overview-modal" id="overviewDrilldown">
+          <header class="overview-modal-head">
+            <div>
+              <h3 id="overviewDrillTitle">Detalhes</h3>
+              <p class="muted" id="overviewDrillCount">0 PNRs encontradas</p>
+            </div>
+            <button class="detail-icon-button" id="overviewDrillCloseBtn" type="button" aria-label="Fechar detalhes"><i data-lucide="x"></i></button>
+          </header>
+
+          <div class="overview-modal-filters">
+            <div class="filter-label">
+              <span>Status</span>
+              <div class="multi-filter dark" id="overviewStatusFilter" data-scope="overview" data-filter="status"></div>
+            </div>
+            <div class="filter-label">
+              <span>Entregador</span>
+              <div class="multi-filter dark" id="overviewDriverFilter" data-scope="overview" data-filter="driver"></div>
+            </div>
+            <div class="filter-label">
+              <span>Situação</span>
+              <div class="multi-filter dark" id="overviewSituationFilter" data-scope="overview" data-filter="situation"></div>
+            </div>
+            <div class="filter-label">
+              <span>Motivo</span>
+              <div class="multi-filter dark" id="overviewReasonFilter" data-scope="overview" data-filter="reason"></div>
+            </div>
+            <label>
+              <span>Ordenar</span>
+              <select id="overviewSortFilter">
+                <option value="default">Padrão</option>
+                <option value="br">BR</option>
+                <option value="driver">Entregador</option>
+                <option value="sla">SLA</option>
+                <option value="situation">Situação</option>
+              </select>
+            </label>
+            <label>
+              <span>Buscar BR</span>
+              <input id="overviewSearch" type="search" placeholder="Digite BR, status ou tratativa">
+            </label>
+            <button class="detail-clear-button" id="overviewClearFiltersBtn" type="button">Limpar filtros</button>
+          </div>
+
+          <div class="overview-drill-table-shell">
+            <table class="overview-drill-table">
+              <thead>
+                <tr>
+                  <th>BR</th>
+                  <th>Status</th>
+                  <th>Entregador</th>
+                  <th>PNR criada em</th>
+                  <th>Vence SLA</th>
+                  <th>Situação</th>
+                  <th>Tratativa</th>
+                </tr>
+              </thead>
+              <tbody id="overviewDrillBody"></tbody>
+            </table>
+          </div>
+        </dialog>
+
+        <div class="overview-grid executive-grid">
+          <section class="surface status-distribution">
+            <header class="section-head">
+              <h3>Status das PNRs</h3>
+              <button class="text-button" data-open-filter="status" type="button">Ver todos</button>
+            </header>
+            <div class="status-summary">
+              <div class="donut-chart" id="statusDonut" aria-hidden="true"></div>
+              <div class="bar-list compact-bars" id="statusBars"></div>
+            </div>
+          </section>
+
+          <section class="surface">
+            <header class="section-head">
+              <h3>Motivo faturamento</h3>
+              <button class="text-button" data-open-filter="reason" type="button">Ver todos</button>
+            </header>
+            <div class="bar-list compact-bars" id="reasonBars"></div>
+          </section>
+
+          <section class="surface wide">
+            <header class="section-head">
+              <h3>Entregadores com maior fila</h3>
+              <button class="text-button" data-open-filter="driver" type="button">Abrir lista</button>
+            </header>
+            <div class="driver-grid" id="driverRanking"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel" id="worklist">
+        <section class="surface cloud-card treatment-cloud-card" id="treatmentCloudCard">
+          <div>
+            <h3>Sincronização na nuvem</h3>
+            <p class="muted">Esta é a central oficial das tratativas. Importe o histórico da nuvem, trate as BRs e sincronize para manter tudo salvo no Supabase.</p>
+          </div>
+          <div class="cloud-actions">
+            <button class="primary-button" id="cloudImportTreatmentsBtn" type="button"><i data-lucide="cloud-download"></i><span>Importar tratativas da nuvem</span></button>
+            <button class="secondary-button" id="cloudSyncTreatmentsBtn" type="button"><i data-lucide="cloud-upload"></i><span>Sincronizar tratativas</span></button>
+          </div>
+          <div class="manual-treatment-grid">
+            <input id="cloudManualBr" type="text" placeholder="BR do pacote">
+            <textarea id="cloudManualTreatment" rows="2" placeholder="Digite a tratativa"></textarea>
+            <button class="primary-button" id="cloudManualSaveBtn" type="button">Salvar</button>
+          </div>
+        </section>
+
+        <div class="toolbar compact-toolbar">
+          <label>
+            <span>Buscar</span>
+            <input id="searchInput" type="search" placeholder="BR, entregador, motivo ou status">
+          </label>
+          <div class="filter-label">
+            <span>Entregador</span>
+            <div class="multi-filter" id="driverFilter" data-filter="driver"></div>
+          </div>
+          <div class="filter-label">
+            <span>Situação</span>
+            <div class="multi-filter" id="situationFilter" data-filter="situation"></div>
+          </div>
+          <div class="filter-label">
+            <span>Status da PNR</span>
+            <div class="multi-filter" id="statusFilter" data-filter="status"></div>
+          </div>
+          <div class="filter-label">
+            <span>Motivo</span>
+            <div class="multi-filter" id="reasonFilter" data-filter="reason"></div>
+          </div>
+          <div class="filter-label">
+            <span>Dia da criação</span>
+            <div class="multi-filter" id="dayFilter" data-filter="day"></div>
+          </div>
+          <button class="primary-button" id="assignCreatedBtn" type="button" hidden><i data-lucide="user-check"></i><span>Atribuir todas</span></button>
+          <button class="secondary-button" id="exportTreatmentsWorklistBtn" type="button"><i data-lucide="file-down"></i><span>Exportar tratativas</span></button>
+          <button class="secondary-button" id="clearFiltersBtn" type="button"><i data-lucide="x"></i><span>Limpar</span></button>
+        </div>
+
+        <div class="table-shell treatment-groups-shell">
+          <table class="groups-table">
+            <thead id="treatmentGroupsHead">
+              <tr>
+                <th>Entregador</th>
+                <th>Tratativa</th>
+                <th>PNR criada em</th>
+                <th>Vence SLA</th>
+                <th>Qtd</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="treatmentGroupsBody"></tbody>
+          </table>
+        </div>
+
+        <dialog class="detail-modal" id="detailModal">
+          <div class="detail-modal-head">
+            <div>
+              <h3 id="detailModalTitle">Detalhes</h3>
+              <p id="detailModalCount">0 PNRs encontradas</p>
+            </div>
+            <button class="detail-icon-button" id="detailModalCloseBtn" type="button" aria-label="Fechar detalhes"><i data-lucide="x"></i></button>
+          </div>
+
+          <div class="detail-filters">
+            <label>
+              <span>Status</span>
+              <select id="modalStatusFilter"></select>
+            </label>
+            <label>
+              <span>Entregador</span>
+              <select id="modalDriverFilter"></select>
+            </label>
+            <label>
+              <span>Ordenar</span>
+              <select id="modalSortFilter">
+                <option value="default">Padrão</option>
+                <option value="br">BR</option>
+                <option value="status">Status</option>
+                <option value="situation">Situação</option>
+              </select>
+            </label>
+            <label>
+              <span>Buscar BR</span>
+              <input id="modalSearch" type="search" placeholder="Digite BR, status ou tratativa">
+            </label>
+            <button class="detail-clear-button" id="modalClearFiltersBtn" type="button">Limpar filtros</button>
+          </div>
+
+          <div class="detail-table-shell">
+            <table class="detail-table">
+              <thead id="detailTableHead">
+                <tr>
+                  <th>BR</th>
+                  <th>Status</th>
+                  <th>Entregador</th>
+                  <th>Motivo</th>
+                  <th>SLA</th>
+                  <th>Tratativa</th>
+                  <th>Situação</th>
+                </tr>
+              </thead>
+              <tbody id="rowsBody"></tbody>
+            </table>
+          </div>
+        </dialog>
+      </section>
+
+      <section class="panel" id="history">
+        <div class="history-head">
+          <div>
+            <h3>Histórico salvo</h3>
+            <p>Registro local das BRs tratadas nesta máquina.</p>
+          </div>
+          <button class="secondary-button" id="exportTreatmentsBtn" type="button"><i data-lucide="file-down"></i><span>Exportar tratativas</span></button>
+        </div>
+        <div class="table-shell compact">
+          <table>
+            <thead>
+              <tr>
+                <th>BR</th>
+                <th>Status da BR</th>
+                <th>Tratativa</th>
+                <th>Última atualização</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" id="manager">
+        <div class="manager-grid">
+          <section class="surface manager-card">
+            <header class="section-head">
+              <div>
+                <h3>Resumo para gestor</h3>
+                <p>Texto pronto para copiar e enviar no WhatsApp.</p>
+              </div>
+              <button class="primary-button" id="copyManagerMessageBtn" type="button"><i data-lucide="copy"></i><span>Copiar mensagem</span></button>
+            </header>
+
+            <div class="manager-controls">
+              <label>
+                <span>Data da atualização</span>
+                <input id="managerDate" type="date">
+              </label>
+              <div class="sla-print-control">
+                <label>
+                  <span>SLA temporário das atribuídas</span>
+                  <input id="assignedSlaPrintDate" type="date">
+                </label>
+                <div class="sla-print-actions">
+                  <button class="secondary-button" id="applyAssignedSlaPrintBtn" type="button"><i data-lucide="calendar-check"></i><span>Aplicar no print</span></button>
+                  <button class="text-button" id="resetAssignedSlaPrintBtn" type="button">Restaurar SLA real</button>
+                </div>
+                <small id="assignedSlaPrintStatus">Não altera a planilha importada.</small>
+              </div>
+            </div>
+
+            <textarea class="manager-message" id="managerMessage" rows="16" spellcheck="false"></textarea>
+          </section>
+
+          <section class="surface manager-card manager-side-card">
+            <h3>Leitura dos números</h3>
+            <div class="manager-stats" id="managerStats"></div>
+            <h3 class="manager-ranking-title">Ranking de atribuídas</h3>
+            <div class="manager-ranking" id="managerRanking"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel" id="settings">
+        <div class="settings-grid">
+          <section class="surface">
+            <h3>Configuração Supabase</h3>
+            <div class="form-grid">
+              <label>
+                <span>URL do projeto</span>
+                <input id="supabaseUrl" type="url" placeholder="https://...supabase.co">
+              </label>
+              <label>
+                <span>Chave pública</span>
+                <input id="supabaseKey" type="password" placeholder="sb_publishable...">
+              </label>
+              <label>
+                <span>E-mail</span>
+                <input id="authEmail" type="email" autocomplete="email">
+              </label>
+              <label>
+                <span>Senha</span>
+                <input id="authPassword" type="password" autocomplete="current-password">
+              </label>
+            </div>
+            <div class="button-row">
+              <button class="primary-button" id="saveSettingsBtn" type="button"><i data-lucide="save"></i><span>Salvar configuração</span></button>
+              <button class="secondary-button" id="loginBtn" type="button"><i data-lucide="log-in"></i><span>Entrar</span></button>
+              <button class="secondary-button" id="logoutBtn" type="button"><i data-lucide="log-out"></i><span>Sair</span></button>
+            </div>
+          </section>
+
+          <section class="surface backup-card">
+            <h3>Backup e restauraÃ§Ã£o</h3>
+            <p class="muted">Baixe uma cÃ³pia completa antes de subir para a nuvem ou antes de fazer mudanÃ§as grandes.</p>
+            <div class="backup-actions">
+              <button class="primary-button" id="exportBackupBtn" type="button"><i data-lucide="database-backup"></i><span>Baixar backup completo</span></button>
+              <label class="file-restore-button">
+                <input id="restoreBackupInput" type="file" accept=".json,application/json">
+                <i data-lucide="folder-input"></i>
+                <span>Restaurar backup</span>
+              </label>
+            </div>
+            <ul class="backup-list">
+              <li>Inclui PNRs importadas, tratativas, atribuÃ­das, IDs IHS e histÃ³rico de importaÃ§Ã£o.</li>
+              <li>NÃ£o substitui o Supabase automaticamente; depois de restaurar, use sincronizar se quiser enviar para a nuvem.</li>
+            </ul>
+          </section>
+
+          <section class="surface">
+            <h3>Banco recomendado</h3>
+            <pre class="sql-box">pnr_items
+pnr_treatments
+pnr_treatment_history
+pnr_imports</pre>
+            <p class="muted">A primeira versão já funciona localmente. A ligação final com a nuvem entra quando as tabelas PNR forem criadas no Supabase.</p>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="cloud-auth-dialog" id="cloudAuthDialog">
+    <form class="cloud-auth-card" id="cloudAuthForm">
+      <div class="cloud-auth-head">
+        <div>
+          <span>SANLOG</span>
+          <h3>Acesso ao Supabase</h3>
+          <p>Entre com o login liberado para salvar e carregar as tratativas na nuvem.</p>
+        </div>
+        <button class="detail-icon-button" id="cloudAuthCancelBtn" type="button" aria-label="Fechar login"><i data-lucide="x"></i></button>
+      </div>
+      <label>
+        <span>E-mail</span>
+        <input id="cloudAuthEmail" type="email" autocomplete="email" required>
+      </label>
+      <label>
+        <span>Senha</span>
+        <input id="cloudAuthPassword" type="password" autocomplete="current-password" required>
+      </label>
+      <button class="primary-button" id="cloudAuthSubmitBtn" type="submit"><i data-lucide="log-in"></i><span>Entrar</span></button>
+      <p class="cloud-auth-message" id="cloudAuthMessage">Login obrigatorio para usar a nuvem.</p>
+    </form>
+  </dialog>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="vendor/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=20260810-09"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+DASHBOARD PNR TXF
+
+Abra o arquivo index.html no navegador.
+
+O painel aceita CSV, XLSX e XLS. ZIP tambem aparece como opcao, mas depende da biblioteca online JSZip.
+
+Campos usados:
+- SPXTN / shipment_id / TN / BR: codigo de rastreio
+- Driver: entregador
+- Station: base
+- SLA Deadline: prazo
+- Rejection Reason: motivo da PNR
+- Created Time: data de criacao
+- Status: status da PNR
+- IHS Ticket ID: ID do ticket usado na exportacao do Faturamento Forms
+
+Campos ignorados:
+- Assignee
+- PNR Order Value
+
+O que funciona:
+- Importar planilha PNR
+- Separar PNR Criadas, Atribuidas, Em Analise, Revertidas, Faturamento Forms e Faturamento PNR
+- Atribuir todas as PNRs criadas sem perder o historico em nova importacao
+- Tratar BR por BR e reaplicar tratativas quando a mesma BR voltar
+- Exportar a visao atual
+- Exportar Faturamento Forms com BR, entregador e IHS Ticket ID
+- Exportar tratativas salvas
+- Sincronizar tratativas e estado do dashboard no Supabase
+- Gerar resumo para gestor
+- Alterar SLA temporariamente em PNR Atribuidas somente para print
+
+Supabase:
+- Rode o arquivo supabase-setup-pnr.sql no SQL Editor do Supabase.
+- A URL do projeto e a chave publica/publishable ficam fixas no inicio do arquivo app.js.
+- Use os botoes de salvar/carregar/sincronizar do painel para entrar com e-mail e senha quando precisar acessar a nuvem.
+- Nao use chave service_role no dashboard. O app bloqueia essa chave por seguranca.
+- A tabela usa RLS, bloqueia anonimos e permite salvar/carregar somente com usuario logado.
