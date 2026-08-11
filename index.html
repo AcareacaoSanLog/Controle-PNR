@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Torre de Controle PNR</title>
-  <link rel="stylesheet" href="styles.css?v=20260811-06">
+  <link rel="stylesheet" href="styles.css?v=20260811-08">
 </head>
 <body class="cloud-auth-locked">
   <div class="app">
@@ -26,6 +26,7 @@
         <button class="nav-button" data-panel="billingForms" type="button"><i data-lucide="clipboard-list"></i><span>Faturamento Forms</span></button>
         <button class="nav-button" data-panel="billing" type="button"><i data-lucide="receipt"></i><span>Faturamento PNR</span></button>
         <button class="nav-button" data-panel="worklist" type="button"><i data-lucide="list-checks"></i><span>Tratativas</span></button>
+        <button class="nav-button" data-panel="reports" type="button"><i data-lucide="megaphone"></i><span>Tratativas informes</span></button>
         <button class="nav-button" data-panel="manager" type="button"><i data-lucide="send"></i><span>Gestor</span></button>
         <button class="nav-button" data-panel="history" type="button"><i data-lucide="history"></i><span>Histórico</span></button>
       </nav>
@@ -303,6 +304,73 @@
         </dialog>
       </section>
 
+      <section class="panel" id="reports">
+        <div class="toolbar compact-toolbar reports-toolbar">
+          <label>
+            <span>Tipo de PNR</span>
+            <select id="reportsTypeFilter">
+              <option value="all">Todos os tipos</option>
+              <option value="created">PNR Criadas</option>
+              <option value="assigned">PNR Atribuídas</option>
+              <option value="analysis">PNR em Análise</option>
+              <option value="reverted">PNR Revertidas</option>
+              <option value="billing">Faturamento PNR</option>
+            </select>
+          </label>
+          <label>
+            <span>Dia da criação</span>
+            <select id="reportsDayFilter">
+              <option value="">Todos os dias</option>
+            </select>
+          </label>
+          <label>
+            <span>Entregador</span>
+            <select id="reportsDriverFilter">
+              <option value="">Todos</option>
+            </select>
+          </label>
+          <label>
+            <span>Tratativa</span>
+            <select id="reportsTreatmentFilter">
+              <option value="all">Todas</option>
+              <option value="with">Com tratativa</option>
+              <option value="without">Sem tratativa</option>
+            </select>
+          </label>
+          <label>
+            <span>Buscar</span>
+            <input id="reportsSearch" type="search" placeholder="BR, entregador, motivo ou tratativa">
+          </label>
+          <button class="secondary-button" id="clearReportsBtn" type="button"><i data-lucide="x"></i><span>Limpar</span></button>
+        </div>
+
+        <section class="surface reports-list-card">
+          <header class="section-head reports-head">
+            <div>
+              <h3>Tratativas informes</h3>
+              <p id="reportsRowsCount">0 PNRs encontradas</p>
+            </div>
+          </header>
+          <div class="reports-table-shell">
+            <table class="reports-table">
+              <thead>
+                <tr>
+                  <th>BR</th>
+                  <th>Status</th>
+                  <th>Entregador</th>
+                  <th>Motivo</th>
+                  <th>PNR criada em</th>
+                  <th>Vence SLA</th>
+                  <th>Tratativa</th>
+                  <th>Atualizado em</th>
+                </tr>
+              </thead>
+              <tbody id="reportsBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
       <section class="panel" id="history">
         <div class="history-head">
           <div>
@@ -453,6 +521,6 @@ pnr_imports</pre>
   <script src="vendor/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260811-03"></script>
+  <script src="app.js?v=20260811-05"></script>
 </body>
 </html>

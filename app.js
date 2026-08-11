@@ -31,6 +31,7 @@
     modal: { status: "", driver: "", sort: "default", search: "" },
     overviewDetail: "",
     overviewModal: { status: [], driver: [], situation: [], reason: [], sort: "default", search: "" },
+    reports: { type: "all", day: "", driver: "", treatment: "all", search: "" },
     panel: "overview",
     settings: loadJson(SETTINGS_KEY, {})
   };
@@ -147,6 +148,18 @@
     managerMessage: document.getElementById("managerMessage"),
     managerStats: document.getElementById("managerStats"),
     managerRanking: document.getElementById("managerRanking"),
+    reportsTypeFilter: document.getElementById("reportsTypeFilter"),
+    reportsDayFilter: document.getElementById("reportsDayFilter"),
+    reportsDriverFilter: document.getElementById("reportsDriverFilter"),
+    reportsTreatmentFilter: document.getElementById("reportsTreatmentFilter"),
+    reportsSearch: document.getElementById("reportsSearch"),
+    clearReportsBtn: document.getElementById("clearReportsBtn"),
+    copyReportsBtn: document.getElementById("copyReportsBtn"),
+    reportsKpis: document.getElementById("reportsKpis"),
+    reportsDriverCount: document.getElementById("reportsDriverCount"),
+    reportsRowsCount: document.getElementById("reportsRowsCount"),
+    reportsRanking: document.getElementById("reportsRanking"),
+    reportsBody: document.getElementById("reportsBody"),
     copyManagerMessageBtn: document.getElementById("copyManagerMessageBtn"),
     assignedSlaPrintDate: document.getElementById("assignedSlaPrintDate"),
     applyAssignedSlaPrintBtn: document.getElementById("applyAssignedSlaPrintBtn"),
@@ -932,6 +945,14 @@
       els.panelSummary.textContent = "Mensagem pronta para copiar e enviar";
       return;
     }
+    if (state.panel === "reports") {
+      const total = reportsBaseRows().length;
+      const visible = reportsFilteredRows().length;
+      const parts = [`Tratativas informes: ${countFormat(total)} PNRs`];
+      if (visible !== total) parts.push(`exibindo ${countFormat(visible)} nos filtros`);
+      els.panelSummary.textContent = parts.join(" | ");
+      return;
+    }
     if (!isWorklistPanel()) {
       els.panelSummary.textContent = "Configuração do dashboard";
       return;
@@ -1143,6 +1164,132 @@ ${managerRankingText()}
           </div>
         `).join("")
         : `<div class="manager-ranking-empty">Sem PNRs atribuídas no momento.</div>`;
+    }
+  }
+
+  function reportTypeLabel(type) {
+    const labels = {
+      all: "Todos os tipos",
+      created: "PNR Criadas",
+      assigned: "PNR Atribu\u00eddas",
+      analysis: "PNR em An\u00e1lise",
+      reverted: "PNR Revertidas",
+      billing: "Faturamento PNR"
+    };
+    return labels[type] || labels.all;
+  }
+
+  function reportRowType(row) {
+    if (row.status === "Criado") return "created";
+    if (row.status === "Em an\u00e1lise") return "analysis";
+    if (row.status === "Faturamento" && row.billingTreatmentText) return "billing";
+    if (row.status === "Revertido") return "reverted";
+    if (hasAssignedDriver(row)) return "assigned";
+    return "";
+  }
+
+  function reportTreatmentText(row) {
+    return reportRowType(row) === "billing" ? row.billingTreatmentText : row.treatmentText;
+  }
+
+  function reportTreatmentUpdatedAt(row) {
+    return reportRowType(row) === "billing" ? row.billingTreatmentUpdatedAt : row.treatmentUpdatedAt;
+  }
+
+  function reportsBaseRows() {
+    return state.rows.filter(row => ["created", "assigned", "analysis", "reverted", "billing"].includes(reportRowType(row)));
+  }
+
+  function reportsFilteredRows() {
+    const type = state.reports.type || "all";
+    const day = clean(state.reports.day);
+    const driver = clean(state.reports.driver);
+    const treatmentFilter = state.reports.treatment || "all";
+    const search = lower(state.reports.search);
+    return reportsBaseRows().filter(row => {
+      const rowType = reportRowType(row);
+      const treatment = reportTreatmentText(row);
+      if (type !== "all" && rowType !== type) return false;
+      if (day && rowCreatedDay(row) !== day) return false;
+      if (driver && row.driver !== driver) return false;
+      if (treatmentFilter === "with" && !clean(treatment)) return false;
+      if (treatmentFilter === "without" && clean(treatment)) return false;
+      if (!search) return true;
+      return [row.br, row.driver, row.status, row.reason, treatment]
+        .some(value => lower(value).includes(search));
+    }).sort((a, b) => dayRank(rowCreatedDay(b)) - dayRank(rowCreatedDay(a)) || a.driver.localeCompare(b.driver, "pt-BR") || a.br.localeCompare(b.br, "pt-BR"));
+  }
+
+  function fillReportsSelect(select, options, allLabel, current) {
+    if (!select) return;
+    select.innerHTML = `<option value="">${html(allLabel)}</option>` + options.map(option => `<option value="${html(option.value)}">${html(option.label)}</option>`).join("");
+    select.value = options.some(option => option.value === current) ? current : "";
+  }
+
+  function syncReportsFilters() {
+    const type = state.reports.type || "all";
+    const typeRows = reportsBaseRows().filter(row => type === "all" || reportRowType(row) === type);
+    const dayOptions = counterByValue(typeRows, rowCreatedDay).map(([label]) => ({ value: label, label }));
+    state.reports.day = dayOptions.some(option => option.value === state.reports.day) ? state.reports.day : "";
+    const dayRows = state.reports.day ? typeRows.filter(row => rowCreatedDay(row) === state.reports.day) : typeRows;
+    const driverOptions = counter(dayRows, "driver").map(([label]) => ({ value: label, label }));
+    state.reports.driver = driverOptions.some(option => option.value === state.reports.driver) ? state.reports.driver : "";
+    fillReportsSelect(els.reportsDayFilter, dayOptions, "Todos os dias", state.reports.day);
+    fillReportsSelect(els.reportsDriverFilter, driverOptions, "Todos", state.reports.driver);
+    if (els.reportsTypeFilter) els.reportsTypeFilter.value = type;
+    if (els.reportsTreatmentFilter) els.reportsTreatmentFilter.value = state.reports.treatment || "all";
+    if (els.reportsSearch) els.reportsSearch.value = state.reports.search || "";
+  }
+
+  function renderReports() {
+    if (!els.reportsBody) return;
+    syncReportsFilters();
+    const rows = reportsFilteredRows();
+    const typeLabel = reportTypeLabel(state.reports.type || "all");
+    const withDay = state.reports.day ? ` em ${state.reports.day}` : "";
+    const withDriver = state.reports.driver ? ` para ${state.reports.driver}` : "";
+    if (els.reportsRowsCount) els.reportsRowsCount.textContent = `${countFormat(rows.length)} PNR${rows.length === 1 ? "" : "s"} encontradas | ${typeLabel}${withDay}${withDriver}`;
+    if (!rows.length) {
+      els.reportsBody.innerHTML = `<tr><td class="detail-empty-row" colspan="8">Nenhuma PNR encontrada nos filtros atuais.</td></tr>`;
+      return;
+    }
+    els.reportsBody.innerHTML = rows.map(row => {
+      const type = reportRowType(row);
+      const treatment = clean(reportTreatmentText(row)) || "Sem tratativa";
+      const updatedAt = reportTreatmentUpdatedAt(row);
+      return `
+        <tr>
+          <td><strong>${html(row.br)}</strong></td>
+          <td><span class="detail-status-pill">${html(row.status)}</span></td>
+          <td>${html(row.driver)}</td>
+          <td>${html(row.reason || "Sem motivo")}</td>
+          <td>${html(dateOnlyLabel(row.created, "Sem data"))}</td>
+          <td>${html(dateOnlyLabel(displaySla(row), "Sem SLA"))}</td>
+          <td>${html(treatment)}</td>
+          <td>${html(updatedAt ? dateLabel(updatedAt) : "Sem atualização")}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function reportsMessageText() {
+    const rows = reportsFilteredRows();
+    const ranking = counter(rows, "driver");
+    const headerDay = state.reports.day ? ` - ${state.reports.day}` : "";
+    const title = `Tratativas informes - ${reportTypeLabel(state.reports.type || "all")}${headerDay}`;
+    const lines = ranking.length
+      ? ranking.map(([driver, total], index) => `${index + 1}. ${driver}: ${countFormat(total)} PNR${total === 1 ? "" : "s"}`).join("\n")
+      : "Sem PNRs nos filtros selecionados.";
+    return `*${title}*\n\nTotal: *${countFormat(rows.length)} PNR${rows.length === 1 ? "" : "s"}*\n\n${lines}`;
+  }
+
+  async function copyReportsMessage() {
+    const text = reportsMessageText();
+    try {
+      await navigator.clipboard.writeText(text);
+      setSync("Informe de tratativas copiado.", "ok");
+    } catch {
+      setSync("N\u00e3o consegui copiar automaticamente. Selecione os dados da tela e copie manualmente.", "warn");
     }
   }
 
@@ -1474,6 +1621,7 @@ ${managerRankingText()}
     if (isWorklistPanel()) {
       return hasDetailFilter() ? visibleRows() : filterRows({ ignoreGroup: true });
     }
+    if (state.panel === "reports") return reportsFilteredRows();
     return state.rows.slice();
   }
 
@@ -2309,6 +2457,7 @@ ${managerRankingText()}
       reverted: "PNR Revertidas",
       billingForms: "Faturamento Forms",
       billing: "Faturamento PNR",
+      reports: "Tratativas informes",
       manager: "Gestor",
       history: "Histórico",
       settings: "Configuração"
@@ -2322,6 +2471,7 @@ ${managerRankingText()}
       renderRows();
     }
     if (panel === "manager") renderManager();
+    if (panel === "reports") renderReports();
     if (panel === "history") renderHistory();
     if (panel === "settings") renderSettings();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2334,6 +2484,7 @@ ${managerRankingText()}
     renderRows();
     renderPanelSummary();
     renderManager();
+    renderReports();
     renderHistory();
     renderSettings();
     renderTopActions();
@@ -2345,6 +2496,40 @@ ${managerRankingText()}
     document.querySelectorAll(".nav-button").forEach(button => button.addEventListener("click", () => setPanel(button.dataset.panel)));
     els.managerDate?.addEventListener("input", renderManager);
     els.copyManagerMessageBtn?.addEventListener("click", copyManagerMessage);
+    els.copyReportsBtn?.addEventListener("click", copyReportsMessage);
+    els.reportsTypeFilter?.addEventListener("change", event => {
+      state.reports.type = event.target.value || "all";
+      state.reports.day = "";
+      state.reports.driver = "";
+      renderReports();
+      renderPanelSummary();
+    });
+    els.reportsDayFilter?.addEventListener("change", event => {
+      state.reports.day = event.target.value;
+      state.reports.driver = "";
+      renderReports();
+      renderPanelSummary();
+    });
+    els.reportsDriverFilter?.addEventListener("change", event => {
+      state.reports.driver = event.target.value;
+      renderReports();
+      renderPanelSummary();
+    });
+    els.reportsTreatmentFilter?.addEventListener("change", event => {
+      state.reports.treatment = event.target.value || "all";
+      renderReports();
+      renderPanelSummary();
+    });
+    els.reportsSearch?.addEventListener("input", event => {
+      state.reports.search = event.target.value;
+      renderReports();
+      renderPanelSummary();
+    });
+    els.clearReportsBtn?.addEventListener("click", () => {
+      state.reports = { type: "all", day: "", driver: "", treatment: "all", search: "" };
+      renderReports();
+      renderPanelSummary();
+    });
     els.applyAssignedSlaPrintBtn?.addEventListener("click", applyAssignedSlaPrint);
     els.resetAssignedSlaPrintBtn?.addEventListener("click", resetAssignedSlaPrint);
     els.assignCreatedBtn?.addEventListener("click", assignAllCreatedRows);
