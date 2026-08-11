@@ -1045,9 +1045,19 @@
   }
 
   function isBillingFormTreatedOnManagerDay(row) {
+    const treatment = treatmentFor(row.br);
     return row.status === "Faturamento"
       && Boolean(row.billingTreatmentText)
+      && !treatment?.legacyBillingMigrated
       && dateOnlyLabel(row.billingTreatmentUpdatedAt, "") === managerDateLabel();
+  }
+
+  function managerFormsTreatedTodayCount() {
+    const treated = new Set();
+    state.rows.forEach(row => {
+      if (isBillingFormTreatedOnManagerDay(row)) treated.add(normalizeKey(row.br));
+    });
+    return treated.size;
   }
 
   function managerAssignedRanking(limit = Infinity) {
@@ -1076,7 +1086,7 @@
       treatedYes: analysisRows.filter(isAnalysisTreatedYes).length,
       driverResolved: analysisRows.filter(isAnalysisDriverResolved).length,
       billing: rows.filter(row => row.status === "Faturamento").length,
-      formsTreatedToday: state.rows.filter(isBillingFormTreatedOnManagerDay).length,
+      formsTreatedToday: managerFormsTreatedTodayCount(),
       reverted: rows.filter(row => row.status === "Revertido").length,
       openAssigned
     };
@@ -1912,8 +1922,8 @@ ${managerRankingText()}
         state: treatmentState,
         text,
         billingText,
-        updatedAt: updatedAt || now,
-        billingUpdatedAt: billingUpdatedAt || (billingText ? now : "")
+        updatedAt: updatedAt || (text ? now : ""),
+        billingUpdatedAt: billingUpdatedAt || ""
       };
     }).filter(Boolean);
   }
@@ -1959,11 +1969,11 @@ ${managerRankingText()}
           next.text = clean(item.text);
           next.updatedAt = item.updatedAt || current.updatedAt || new Date().toISOString();
         }
-        if (clean(item.billingText)) {
-          next.billingText = clean(item.billingText);
-          next.billingUpdatedAt = item.billingUpdatedAt || current.billingUpdatedAt || new Date().toISOString();
-          next.updatedAt = next.updatedAt || next.billingUpdatedAt;
-        }
+      if (clean(item.billingText)) {
+        next.billingText = clean(item.billingText);
+        next.billingUpdatedAt = item.billingUpdatedAt || current.billingUpdatedAt || item.updatedAt || "";
+        next.updatedAt = next.updatedAt || next.billingUpdatedAt;
+      }
         state.treatments[key] = next;
       });
       hydrateRows();
