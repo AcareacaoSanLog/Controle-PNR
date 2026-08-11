@@ -240,8 +240,8 @@
   }
 
   function applyDashboardPayload(payload) {
-    if (!payload || payload.app !== "DASHBOARD_PNR_TXF") throw new Error("Este arquivo nÃ£o Ã© um backup do Dashboard PNR.");
-    if (!Array.isArray(payload.rows)) throw new Error("Backup invÃ¡lido: lista de PNRs ausente.");
+    if (!payload || payload.app !== "DASHBOARD_PNR_TXF") throw new Error("Este arquivo não ? um backup do Dashboard PNR.");
+    if (!Array.isArray(payload.rows)) throw new Error("Backup inválido: lista de PNRs ausente.");
     state.rows = payload.rows;
     state.treatments = payload.treatments && typeof payload.treatments === "object" ? payload.treatments : {};
     state.assignedOverrides = payload.assignedOverrides && typeof payload.assignedOverrides === "object" ? payload.assignedOverrides : {};
@@ -1900,11 +1900,11 @@ ${managerRankingText()}
     return rawRows.map(row => {
       const br = normalizeKey(rowValueByHints(row, ["BR", "SPXTN", "shipment_id", "tracking"]));
       if (!br) return null;
-      const text = rowValueByHints(row, ["Tratativa analise", "Tratativa análise", "Tratativa anÃ¡lise", "Tratativa", "Treatment"]);
+      const text = rowValueByHints(row, ["Tratativa analise", "Tratativa análise", "Tratativa análise", "Tratativa", "Treatment"]);
       const billingText = rowValueByHints(row, ["Tratativa faturamento", "Faturamento"]);
-      const treatmentState = rowValueByHints(row, ["Situacao", "Situação", "SituaÃ§Ã£o", "Status da tratativa"]) || "Pendente";
-      const updatedAt = rowValueByHints(row, ["Atualizado em", "Atualizacao", "Atualização", "AtualizaÃ§Ã£o"]);
-      const billingUpdatedAt = rowValueByHints(row, ["Atualizado faturamento", "Atualizacao faturamento", "Atualização faturamento", "AtualizaÃ§Ã£o faturamento"]);
+      const treatmentState = rowValueByHints(row, ["Situacao", "Situação", "Situação", "Status da tratativa"]) || "Pendente";
+      const updatedAt = rowValueByHints(row, ["Atualizado em", "Atualizacao", "Atualização", "Atualização"]);
+      const billingUpdatedAt = rowValueByHints(row, ["Atualizado faturamento", "Atualizacao faturamento", "Atualização faturamento", "Atualização faturamento"]);
       if (!text && !billingText && treatmentState === "Pendente") return null;
       return {
         br,
@@ -1927,7 +1927,7 @@ ${managerRankingText()}
     }
     if (/\.csv$/i.test(file.name)) return treatmentRowsFromWorksheetRows(parseCsvRows(await file.text()));
     if (/\.(xlsx|xls)$/i.test(file.name)) {
-      if (typeof XLSX === "undefined") throw new Error("A biblioteca de Excel nÃ£o carregou.");
+      if (typeof XLSX === "undefined") throw new Error("A biblioteca de Excel não carregou.");
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
       return workbook.SheetNames.flatMap(sheetName => {
@@ -2038,7 +2038,7 @@ ${managerRankingText()}
     const settings = cloudSettings();
     if (!window.supabase || !settings.supabaseUrl || !settings.supabaseKey) return null;
     if (unsafeSupabaseKey(settings.supabaseKey)) {
-      setSync("Chave service_role bloqueada. Use somente chave pÃºblica/publishable no dashboard.", "error");
+      setSync("Chave service_role bloqueada. Use somente chave pública/publishable no dashboard.", "error");
       return null;
     }
     return window.supabase.createClient(settings.supabaseUrl, settings.supabaseKey);
@@ -2067,12 +2067,12 @@ ${managerRankingText()}
 
   function openCloudLogin(client, options = {}) {
     if (!els.cloudAuthDialog || !els.cloudAuthEmail || !els.cloudAuthPassword) {
-      setSync("Login do Supabase indisponivel nesta tela.", "error");
+      setSync("Login do Supabase indisponível nesta tela.", "error");
       return Promise.resolve(null);
     }
     if (pendingCloudLogin) return pendingCloudLogin.promise;
     setDailyAuthLocked(Boolean(options.required));
-    setCloudAuthMessage(options.required ? "Entre para liberar o dashboard hoje." : "Login obrigatorio para usar a nuvem.");
+    setCloudAuthMessage(options.required ? "Entre para liberar o dashboard hoje." : "Login obrigatório para usar a nuvem.");
     els.cloudAuthPassword.value = "";
     let resolver = null;
     const promise = new Promise(resolve => {
@@ -2150,7 +2150,7 @@ ${managerRankingText()}
 
   async function cloudUserId(client) {
     const { data, error } = await client.auth.getUser();
-    if (error || !data?.user?.id) throw new Error("SessÃ£o do Supabase invÃ¡lida. Entre novamente.");
+    if (error || !data?.user?.id) throw new Error("Sessão do Supabase inválida. Entre novamente.");
     return data.user.id;
   }
 
@@ -2278,7 +2278,7 @@ ${managerRankingText()}
       billing: "Faturamento PNR",
       manager: "Gestor",
       history: "Histórico",
-      settings: "Configuracao"
+      settings: "Configuração"
     };
     els.panelTitle.textContent = titles[panel] || "Controle PNR";
     renderPanelSummary();
@@ -2433,7 +2433,7 @@ ${managerRankingText()}
       event.preventDefault();
       const client = pendingCloudLogin?.client || supabaseClient();
       if (!client) {
-        setCloudAuthMessage("Supabase indisponivel. Verifique a configuracao.", "error");
+        setCloudAuthMessage("Supabase indisponível. Verifique a configuração.", "error");
         return;
       }
       const email = clean(els.cloudAuthEmail.value).toLowerCase();
@@ -2445,7 +2445,7 @@ ${managerRankingText()}
       setCloudAuthMessage("Entrando...");
       const { data, error } = await client.auth.signInWithPassword({ email, password });
       if (error) {
-        setCloudAuthMessage("Login nao autorizado no Supabase.", "error");
+        setCloudAuthMessage("Login não autorizado no Supabase.", "error");
         return;
       }
       markCloudAuthOk(data.session);
@@ -2454,25 +2454,25 @@ ${managerRankingText()}
     });
     els.cloudAuthCancelBtn?.addEventListener("click", () => {
       if (pendingCloudLogin?.required) {
-        setCloudAuthMessage("Login obrigatorio para liberar o dashboard hoje.", "error");
+        setCloudAuthMessage("Login obrigatório para liberar o dashboard hoje.", "error");
         return;
       }
-      setSync("Login cancelado. A acao da nuvem nao foi concluida.", "warn");
+      setSync("Login cancelado. A ação da nuvem não foi concluída.", "warn");
       closeCloudLogin(null);
     });
     els.cloudAuthDialog?.addEventListener("cancel", event => {
       event.preventDefault();
       if (pendingCloudLogin?.required) {
-        setCloudAuthMessage("Login obrigatorio para liberar o dashboard hoje.", "error");
+        setCloudAuthMessage("Login obrigatório para liberar o dashboard hoje.", "error");
         return;
       }
-      setSync("Login cancelado. A acao da nuvem nao foi concluida.", "warn");
+      setSync("Login cancelado. A ação da nuvem não foi concluída.", "warn");
       closeCloudLogin(null);
     });
     els.saveSettingsBtn.addEventListener("click", () => {
       const supabaseKey = clean(els.supabaseKey.value);
       if (unsafeSupabaseKey(supabaseKey)) {
-        setSync("Chave service_role bloqueada. Cole somente a chave pÃºblica/publishable do Supabase.", "error");
+        setSync("Chave service_role bloqueada. Cole somente a chave pública/publishable do Supabase.", "error");
         return;
       }
       state.settings = { supabaseUrl: clean(els.supabaseUrl.value), supabaseKey };
