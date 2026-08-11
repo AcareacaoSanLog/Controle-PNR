@@ -6,8 +6,8 @@
   const CLOUD_TABLE = "pnr_dashboard_state";
   const CLOUD_ID = "xpt-ba-teixeira-03";
   const BASE_NAME = "XPT_BA_Teixeira de Freitas_03";
-  const SUPABASE_URL = "https://ionlbxgwaqyracpztoiv.supabase.co";
-  const SUPABASE_PUBLIC_KEY = "sb_publishable_5W-VMD2kk7OmRP1vpEYJ4g_TZCUB93g";
+  const SUPABASE_URL = "https://enhvhetmxuebgcrflhko.supabase.co";
+  const SUPABASE_PUBLIC_KEY = "sb_publishable_LiUb2xFvOilmmY9WIOoL_Q_6s04IcL3";
 
   const columnHints = {
     br: ["spxtn", "shipment_id", "shipment id", "tn", "tracking", "numero de rastreamento", "número de rastreamento", "br"],
