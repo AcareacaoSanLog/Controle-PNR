@@ -1196,6 +1196,10 @@ ${managerRankingText()}
     return reportRowType(row) === "billing" ? row.billingTreatmentUpdatedAt : row.treatmentUpdatedAt;
   }
 
+  function reportRowKey(row) {
+    return [normalizeKey(row.br), row.status, row.driver, rowCreatedDay(row), dateOnlyLabel(displaySla(row), "")].join("|");
+  }
+
   function reportsBaseRows() {
     return state.rows.filter(row => ["created", "assigned", "analysis", "reverted", "billing"].includes(reportRowType(row)));
   }
@@ -1254,9 +1258,7 @@ ${managerRankingText()}
       return;
     }
     els.reportsBody.innerHTML = rows.map(row => {
-      const type = reportRowType(row);
       const treatment = clean(reportTreatmentText(row)) || "Sem tratativa";
-      const updatedAt = reportTreatmentUpdatedAt(row);
       return `
         <tr>
           <td><strong>${html(row.br)}</strong></td>
@@ -1266,10 +1268,56 @@ ${managerRankingText()}
           <td>${html(dateOnlyLabel(row.created, "Sem data"))}</td>
           <td>${html(dateOnlyLabel(displaySla(row), "Sem SLA"))}</td>
           <td>${html(treatment)}</td>
-          <td>${html(updatedAt ? dateLabel(updatedAt) : "Sem atualização")}</td>
+          <td><button class="open-group-button" data-report-open="${html(reportRowKey(row))}" type="button">Abrir</button></td>
         </tr>
       `;
     }).join("");
+  }
+
+  function openReportDetail(key) {
+    const row = reportsFilteredRows().find(item => reportRowKey(item) === key) || reportsBaseRows().find(item => reportRowKey(item) === key);
+    if (!row) return;
+    if (els.detailModal.parentElement !== document.body) document.body.appendChild(els.detailModal);
+    const isBilling = reportRowType(row) === "billing";
+    const treatmentText = reportTreatmentText(row);
+    const treatmentUpdatedAt = reportTreatmentUpdatedAt(row);
+    const treatmentState = isBilling ? (treatmentText ? "Tratado" : "Pendente") : rowTreatmentState(row, reportRowType(row));
+    const treatmentPatch = isBilling ? "billingText" : "text";
+    els.detailModal.classList.add("report-detail-mode");
+    els.detailModalTitle.textContent = row.br;
+    els.detailModalCount.textContent = `${row.status} | ${row.driver || "Sem entregador"}`;
+    els.detailTableHead.innerHTML = `
+      <tr>
+        <th>BR</th>
+        <th>Status</th>
+        <th>Entregador</th>
+        <th>Motivo</th>
+        <th>SLA</th>
+        <th>Tratativa</th>
+        ${isBilling ? "" : "<th>Situação</th>"}
+      </tr>
+    `;
+    els.rowsBody.innerHTML = `
+      <tr>
+        <td><strong>${html(row.br)}</strong></td>
+        <td><span class="detail-status-pill">${html(row.status)}</span></td>
+        <td>${html(row.driver)}</td>
+        <td>${html(row.reason || "Sem motivo")}</td>
+        <td><strong>${html(displaySla(row) || "Sem SLA")}</strong><div class="detail-muted">${html(row.created ? `Criado em ${row.created}` : "")}</div></td>
+        <td>
+          <div class="detail-treatment-box">
+            <textarea data-treatment="${html(row.br)}" data-treatment-field="${html(treatmentPatch)}" placeholder="Descreva a tratativa realizada">${html(treatmentText)}</textarea>
+            <div class="detail-muted">${treatmentUpdatedAt ? `Atualizado em ${html(dateLabel(treatmentUpdatedAt))}` : "Sem registro salvo"}</div>
+          </div>
+        </td>
+        ${isBilling ? "" : `<td>
+          <select class="detail-state-select" data-state="${html(row.br)}">
+            ${treatmentStateOptions().map(item => `<option value="${item}" ${treatmentState === item ? "selected" : ""}>${item}</option>`).join("")}
+          </select>
+        </td>`}
+      </tr>
+    `;
+    els.detailModal.showModal();
   }
 
   function reportsMessageText() {
@@ -2530,6 +2578,11 @@ ${managerRankingText()}
       renderReports();
       renderPanelSummary();
     });
+    els.reportsBody?.addEventListener("click", event => {
+      const button = event.target.closest("[data-report-open]");
+      if (!button) return;
+      openReportDetail(button.dataset.reportOpen);
+    });
     els.applyAssignedSlaPrintBtn?.addEventListener("click", applyAssignedSlaPrint);
     els.resetAssignedSlaPrintBtn?.addEventListener("click", resetAssignedSlaPrint);
     els.assignCreatedBtn?.addEventListener("click", assignAllCreatedRows);
@@ -2557,6 +2610,7 @@ ${managerRankingText()}
       if (event.target === els.detailModal) els.detailModal.close();
     });
     els.detailModal.addEventListener("close", () => {
+      els.detailModal.classList.remove("report-detail-mode");
       state.filters.group = "";
       renderAll();
     });

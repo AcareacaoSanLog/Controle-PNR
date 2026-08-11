@@ -5058,11 +5058,19 @@ textarea,
 }
 
 #reports .reports-table tr:nth-child(odd) td {
-  background: rgba(229, 214, 181, .72);
+  background: #ECE2CE;
 }
 
 #reports .reports-table tr:nth-child(even) td {
-  background: rgba(246, 244, 241, .56);
+  background: #ECE2CE;
+}
+
+#reports .reports-table tr:hover td {
+  background: #E4D5B5;
+}
+
+.detail-modal.report-detail-mode .detail-filters {
+  display: none !important;
 }
 
 @media (max-width: 1280px) {
