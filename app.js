@@ -31,7 +31,7 @@
     modal: { status: "", driver: "", sort: "default", search: "" },
     overviewDetail: "",
     overviewModal: { status: [], driver: [], situation: [], reason: [], sort: "default", search: "" },
-    reports: { type: "all", day: "", driver: "", treatment: "all", search: "" },
+    reports: { types: [], days: [], drivers: [], treatments: [], search: "" },
     panel: "overview",
     settings: loadJson(SETTINGS_KEY, {})
   };
@@ -1179,6 +1179,23 @@ ${managerRankingText()}
     return labels[type] || labels.all;
   }
 
+  function reportTypeOptions() {
+    return [
+      { value: "created", label: "PNR Criadas" },
+      { value: "assigned", label: "PNR Atribu\u00eddas" },
+      { value: "analysis", label: "PNR em An\u00e1lise" },
+      { value: "reverted", label: "PNR Revertidas" },
+      { value: "billing", label: "Faturamento PNR" }
+    ];
+  }
+
+  function reportTreatmentOptions() {
+    return [
+      { value: "with", label: "Com tratativa" },
+      { value: "without", label: "Sem tratativa" }
+    ];
+  }
+
   function reportRowType(row) {
     if (row.status === "Criado") return "created";
     if (row.status === "Em an\u00e1lise") return "analysis";
@@ -1205,43 +1222,44 @@ ${managerRankingText()}
   }
 
   function reportsFilteredRows() {
-    const type = state.reports.type || "all";
-    const day = clean(state.reports.day);
-    const driver = clean(state.reports.driver);
-    const treatmentFilter = state.reports.treatment || "all";
+    const types = selectedValues(state.reports.types);
+    const days = selectedValues(state.reports.days);
+    const drivers = selectedValues(state.reports.drivers);
+    const treatments = selectedValues(state.reports.treatments);
+    const onlyWithTreatment = treatments.includes("with") && !treatments.includes("without");
+    const onlyWithoutTreatment = treatments.includes("without") && !treatments.includes("with");
     const search = lower(state.reports.search);
     return reportsBaseRows().filter(row => {
       const rowType = reportRowType(row);
       const treatment = reportTreatmentText(row);
-      if (type !== "all" && rowType !== type) return false;
-      if (day && rowCreatedDay(row) !== day) return false;
-      if (driver && row.driver !== driver) return false;
-      if (treatmentFilter === "with" && !clean(treatment)) return false;
-      if (treatmentFilter === "without" && clean(treatment)) return false;
+      if (types.length && !types.includes(rowType)) return false;
+      if (days.length && !days.includes(rowCreatedDay(row))) return false;
+      if (drivers.length && !drivers.includes(row.driver)) return false;
+      if (onlyWithTreatment && !clean(treatment)) return false;
+      if (onlyWithoutTreatment && clean(treatment)) return false;
       if (!search) return true;
-      return [row.br, row.driver, row.status, row.reason, treatment]
+      return [row.driver, row.reason, treatment]
         .some(value => lower(value).includes(search));
     }).sort((a, b) => dayRank(rowCreatedDay(b)) - dayRank(rowCreatedDay(a)) || a.driver.localeCompare(b.driver, "pt-BR") || a.br.localeCompare(b.br, "pt-BR"));
   }
 
-  function fillReportsSelect(select, options, allLabel, current) {
-    if (!select) return;
-    select.innerHTML = `<option value="">${html(allLabel)}</option>` + options.map(option => `<option value="${html(option.value)}">${html(option.label)}</option>`).join("");
-    select.value = options.some(option => option.value === current) ? current : "";
-  }
-
   function syncReportsFilters() {
-    const type = state.reports.type || "all";
-    const typeRows = reportsBaseRows().filter(row => type === "all" || reportRowType(row) === type);
+    const typeOptions = reportTypeOptions();
+    state.reports.types = validSelections(state.reports.types, typeOptions);
+    const selectedTypes = selectedValues(state.reports.types);
+    const typeRows = reportsBaseRows().filter(row => !selectedTypes.length || selectedTypes.includes(reportRowType(row)));
     const dayOptions = counterByValue(typeRows, rowCreatedDay).map(([label]) => ({ value: label, label }));
-    state.reports.day = dayOptions.some(option => option.value === state.reports.day) ? state.reports.day : "";
-    const dayRows = state.reports.day ? typeRows.filter(row => rowCreatedDay(row) === state.reports.day) : typeRows;
+    state.reports.days = validSelections(state.reports.days, dayOptions);
+    const selectedDays = selectedValues(state.reports.days);
+    const dayRows = selectedDays.length ? typeRows.filter(row => selectedDays.includes(rowCreatedDay(row))) : typeRows;
     const driverOptions = counter(dayRows, "driver").map(([label]) => ({ value: label, label }));
-    state.reports.driver = driverOptions.some(option => option.value === state.reports.driver) ? state.reports.driver : "";
-    fillReportsSelect(els.reportsDayFilter, dayOptions, "Todos os dias", state.reports.day);
-    fillReportsSelect(els.reportsDriverFilter, driverOptions, "Todos", state.reports.driver);
-    if (els.reportsTypeFilter) els.reportsTypeFilter.value = type;
-    if (els.reportsTreatmentFilter) els.reportsTreatmentFilter.value = state.reports.treatment || "all";
+    const treatmentOptions = reportTreatmentOptions();
+    state.reports.drivers = validSelections(state.reports.drivers, driverOptions);
+    state.reports.treatments = validSelections(state.reports.treatments, treatmentOptions);
+    renderMultiFilter(els.reportsTypeFilter, typeOptions, state.reports.types, "Todos os tipos");
+    renderMultiFilter(els.reportsDayFilter, dayOptions, state.reports.days, "Todos os dias");
+    renderMultiFilter(els.reportsDriverFilter, driverOptions, state.reports.drivers, "Todos");
+    renderMultiFilter(els.reportsTreatmentFilter, treatmentOptions, state.reports.treatments, "Todas");
     if (els.reportsSearch) els.reportsSearch.value = state.reports.search || "";
   }
 
@@ -1249,20 +1267,22 @@ ${managerRankingText()}
     if (!els.reportsBody) return;
     syncReportsFilters();
     const rows = reportsFilteredRows();
-    const typeLabel = reportTypeLabel(state.reports.type || "all");
-    const withDay = state.reports.day ? ` em ${state.reports.day}` : "";
-    const withDriver = state.reports.driver ? ` para ${state.reports.driver}` : "";
+    const selectedTypes = selectedValues(state.reports.types);
+    const selectedDays = selectedValues(state.reports.days);
+    const selectedDrivers = selectedValues(state.reports.drivers);
+    const typeLabel = selectedTypes.length ? selectedTypes.map(reportTypeLabel).join(", ") : "Todos os tipos";
+    const withDay = selectedDays.length ? ` | Dias: ${selectedDays.join(", ")}` : "";
+    const withDriver = selectedDrivers.length ? ` | Entregadores: ${selectedDrivers.join(", ")}` : "";
     if (els.reportsRowsCount) els.reportsRowsCount.textContent = `${countFormat(rows.length)} PNR${rows.length === 1 ? "" : "s"} encontradas | ${typeLabel}${withDay}${withDriver}`;
     if (!rows.length) {
-      els.reportsBody.innerHTML = `<tr><td class="detail-empty-row" colspan="8">Nenhuma PNR encontrada nos filtros atuais.</td></tr>`;
+      els.reportsBody.innerHTML = `<tr><td class="detail-empty-row" colspan="6">Nenhuma PNR encontrada nos filtros atuais.</td></tr>`;
+      if (window.lucide) window.lucide.createIcons();
       return;
     }
     els.reportsBody.innerHTML = rows.map(row => {
       const treatment = clean(reportTreatmentText(row)) || "Sem tratativa";
       return `
         <tr>
-          <td><strong>${html(row.br)}</strong></td>
-          <td><span class="detail-status-pill">${html(row.status)}</span></td>
           <td>${html(row.driver)}</td>
           <td>${html(row.reason || "Sem motivo")}</td>
           <td>${html(dateOnlyLabel(row.created, "Sem data"))}</td>
@@ -1272,6 +1292,7 @@ ${managerRankingText()}
         </tr>
       `;
     }).join("");
+    if (window.lucide) window.lucide.createIcons();
   }
 
   function openReportDetail(key) {
@@ -1831,7 +1852,11 @@ ${managerRankingText()}
       if (!checkbox) return;
       const key = container.dataset.filter;
       if (!key) return;
-      const scope = container.dataset.scope === "overview" ? state.overviewModal : state.filters;
+      const scope = container.dataset.scope === "overview"
+        ? state.overviewModal
+        : container.dataset.scope === "reports"
+        ? state.reports
+        : state.filters;
       const current = new Set(selectedValues(scope[key]));
       if (!checkbox.value) {
         scope[key] = [];
@@ -1841,6 +1866,10 @@ ${managerRankingText()}
         scope[key] = Array.from(current);
       }
       if (container.dataset.scope === "overview") renderOverviewDetail();
+      else if (container.dataset.scope === "reports") {
+        renderReports();
+        renderPanelSummary();
+      }
       else {
         state.filters.group = "";
         renderAll();
@@ -2545,36 +2574,13 @@ ${managerRankingText()}
     els.managerDate?.addEventListener("input", renderManager);
     els.copyManagerMessageBtn?.addEventListener("click", copyManagerMessage);
     els.copyReportsBtn?.addEventListener("click", copyReportsMessage);
-    els.reportsTypeFilter?.addEventListener("change", event => {
-      state.reports.type = event.target.value || "all";
-      state.reports.day = "";
-      state.reports.driver = "";
-      renderReports();
-      renderPanelSummary();
-    });
-    els.reportsDayFilter?.addEventListener("change", event => {
-      state.reports.day = event.target.value;
-      state.reports.driver = "";
-      renderReports();
-      renderPanelSummary();
-    });
-    els.reportsDriverFilter?.addEventListener("change", event => {
-      state.reports.driver = event.target.value;
-      renderReports();
-      renderPanelSummary();
-    });
-    els.reportsTreatmentFilter?.addEventListener("change", event => {
-      state.reports.treatment = event.target.value || "all";
-      renderReports();
-      renderPanelSummary();
-    });
     els.reportsSearch?.addEventListener("input", event => {
       state.reports.search = event.target.value;
       renderReports();
       renderPanelSummary();
     });
     els.clearReportsBtn?.addEventListener("click", () => {
-      state.reports = { type: "all", day: "", driver: "", treatment: "all", search: "" };
+      state.reports = { types: [], days: [], drivers: [], treatments: [], search: "" };
       renderReports();
       renderPanelSummary();
     });
@@ -2588,7 +2594,7 @@ ${managerRankingText()}
     els.assignCreatedBtn?.addEventListener("click", assignAllCreatedRows);
     els.exportFormsBtn?.addEventListener("click", exportBillingFormsExcel);
     els.searchInput.addEventListener("input", event => { state.filters.search = event.target.value; state.filters.group = ""; renderAll(); });
-    [els.driverFilter, els.situationFilter, els.statusFilter, els.reasonFilter, els.dayFilter, els.overviewStatusFilter, els.overviewDriverFilter, els.overviewSituationFilter, els.overviewReasonFilter].forEach(bindMultiFilter);
+    [els.driverFilter, els.situationFilter, els.statusFilter, els.reasonFilter, els.dayFilter, els.overviewStatusFilter, els.overviewDriverFilter, els.overviewSituationFilter, els.overviewReasonFilter, els.reportsTypeFilter, els.reportsDayFilter, els.reportsDriverFilter, els.reportsTreatmentFilter].forEach(bindMultiFilter);
     document.addEventListener("click", event => {
       if (!event.target.closest(".multi-filter")) closeMultiFilters();
     });
