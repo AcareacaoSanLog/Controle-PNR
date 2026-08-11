@@ -1284,7 +1284,7 @@ ${managerRankingText()}
         </span>
         <b>${countFormat(total)} PNRs em aberto</b>
       </button>
-    `).join("") : `<div class="empty-row">Sem entregadores em aberto.</div>`;
+    `).join("") : `<div class="driver-empty">Sem entregadores em aberto.</div>`;
     renderOverviewDetail();
   }
 

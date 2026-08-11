@@ -751,6 +751,16 @@ body.cloud-auth-locked .app {
 .driver-row strong, .driver-row span { overflow-wrap: anywhere; }
 .driver-row span { color: var(--muted); font-size: 13px; }
 .driver-row b { font-size: 22px; color: #8c2536; }
+.driver-empty {
+  grid-column: 1 / -1;
+  padding: 34px 16px;
+  text-align: center;
+  color: #223300;
+  font-weight: 900;
+  background: rgba(236, 226, 206, .42);
+  border: 1px solid rgba(75, 93, 22, .18);
+  border-radius: 8px;
+}
 
 .toolbar {
   background: var(--panel);
