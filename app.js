@@ -39,6 +39,7 @@
   let assignedSlaPrintDate = "";
   let currentCloudSession = null;
   let pendingCloudLogin = null;
+  let cloudAutoLoadPromise = null;
 
   const situationOptions = [
     { value: "pending", label: "Pendentes" },
@@ -2059,10 +2060,10 @@ ${managerRankingText()}
     return localDateInput(new Date());
   }
 
-  function markCloudAuthOk(session) {
+  function markCloudAuthOk(session, options = {}) {
     currentCloudSession = session || null;
     sessionStorage.setItem(AUTH_DAY_KEY, currentAuthDay());
-    setDailyAuthLocked(false);
+    if (!options.keepLocked) setDailyAuthLocked(false);
   }
 
   function openCloudLogin(client, options = {}) {
@@ -2119,7 +2120,8 @@ ${managerRankingText()}
     try {
       const { data } = await client.auth.getSession();
       if (data?.session && sessionStorage.getItem(AUTH_DAY_KEY) === currentAuthDay()) {
-        markCloudAuthOk(data.session);
+        markCloudAuthOk(data.session, { keepLocked: true });
+        await autoLoadCloud(client);
         return;
       }
       if (data?.session) await client.auth.signOut();
@@ -2172,6 +2174,37 @@ ${managerRankingText()}
     const { data, error } = await client.from(CLOUD_TABLE).select("payload").eq("id", CLOUD_ID).maybeSingle();
     if (error) throw error;
     return data?.payload || {};
+  }
+
+  async function loadCloudDashboard(client, options = {}) {
+    try {
+      const payload = await cloudPayload(client);
+      if (!payload || !Object.keys(payload).length) {
+        if (options.notify !== false) setSync("Nenhum dashboard PNR salvo na nuvem ainda.", "warn");
+        return false;
+      }
+      applyDashboardPayload({ app: "DASHBOARD_PNR_TXF", ...payload });
+      if (options.notify !== false) {
+        setSync(options.auto ? "Dashboard PNR carregado automaticamente da nuvem." : "Dashboard PNR carregado da nuvem.", "ok");
+      }
+      return true;
+    } catch (error) {
+      const prefix = options.auto ? "Erro ao carregar automaticamente da nuvem" : "Erro ao carregar da nuvem";
+      setSync(`${prefix}: ${error.message || error}`, "error");
+      return false;
+    } finally {
+      if (options.unlock) setDailyAuthLocked(false);
+    }
+  }
+
+  async function autoLoadCloud(client) {
+    if (cloudAutoLoadPromise) return cloudAutoLoadPromise;
+    cloudAutoLoadPromise = loadCloudDashboard(client, { auto: true, unlock: true });
+    try {
+      return await cloudAutoLoadPromise;
+    } finally {
+      cloudAutoLoadPromise = null;
+    }
   }
 
   async function saveTreatmentsPayload(client) {
@@ -2250,17 +2283,7 @@ ${managerRankingText()}
   async function loadCloud() {
     const client = await loginCloud();
     if (!client) return;
-    const { data, error } = await client.from(CLOUD_TABLE).select("payload").eq("id", CLOUD_ID).maybeSingle();
-    if (error) {
-      setSync(`Erro ao carregar da nuvem: ${error.message}`, "error");
-      return;
-    }
-    if (!data?.payload) {
-      setSync("Nenhum dashboard PNR salvo na nuvem ainda.", "warn");
-      return;
-    }
-    applyDashboardPayload({ app: "DASHBOARD_PNR_TXF", ...data.payload });
-    setSync("Dashboard PNR carregado da nuvem.", "ok");
+    await loadCloudDashboard(client);
   }
 
   function setPanel(panel) {
@@ -2448,8 +2471,10 @@ ${managerRankingText()}
         setCloudAuthMessage("Login não autorizado no Supabase.", "error");
         return;
       }
-      markCloudAuthOk(data.session);
+      setCloudAuthMessage("Carregando dados da nuvem...");
+      markCloudAuthOk(data.session, { keepLocked: true });
       setSync(`Login ativo: ${data.session.user.email}`, "ok");
+      await autoLoadCloud(client);
       closeCloudLogin(client);
     });
     els.cloudAuthCancelBtn?.addEventListener("click", () => {
