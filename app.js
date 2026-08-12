@@ -578,7 +578,8 @@
         treatmentState,
         treatmentUpdatedAt: treatment?.updatedAt || "",
         billingTreatmentText: treatment?.billingText || "",
-        billingTreatmentUpdatedAt: treatment?.billingUpdatedAt || ""
+        billingTreatmentUpdatedAt: treatment?.billingUpdatedAt || "",
+        billingFormTreatedAt: treatment?.billingFormTreatedAt || ""
       };
     });
   }
@@ -1123,8 +1124,8 @@
     const treatment = treatmentFor(row.br);
     return row.status === "Faturamento"
       && Boolean(row.billingTreatmentText)
-      && !treatment?.legacyBillingMigrated
-      && dateOnlyLabel(row.billingTreatmentUpdatedAt, "") === managerDateLabel();
+      && Boolean(treatment?.billingFormTreatedAt || row.billingFormTreatedAt)
+      && dateOnlyLabel(treatment?.billingFormTreatedAt || row.billingFormTreatedAt, "") === managerDateLabel();
   }
 
   function managerFormsTreatedTodayCount() {
@@ -2189,13 +2190,19 @@ ${managerRankingText()}
     const key = normalizeKey(br);
     const current = state.treatments[key] || { br: key, text: "", state: "Pendente" };
     const now = new Date().toISOString();
+    const hadBillingText = Boolean(clean(current.billingText));
     const next = {
       ...current,
       ...patch,
       br: key,
       updatedAt: now
     };
-    if (Object.prototype.hasOwnProperty.call(patch, "billingText")) next.billingUpdatedAt = now;
+    if (Object.prototype.hasOwnProperty.call(patch, "billingText")) {
+      next.billingUpdatedAt = now;
+      if (options.fromBillingForms && clean(patch.billingText) && !hadBillingText && !next.billingFormTreatedAt) {
+        next.billingFormTreatedAt = now;
+      }
+    }
     if (!next.text && !next.billingText && next.state === "Pendente") delete state.treatments[key];
     else state.treatments[key] = next;
     hydrateRows();
@@ -2206,10 +2213,10 @@ ${managerRankingText()}
   }
 
   function exportCsv(rows, filename) {
-    const headers = ["BR", "Status da PNR", "Motivo", "Entregador", "Base", "SLA", "Criado em", "Situação", "Tratativa análise", "Atualizado em", "Tratativa faturamento", "Atualizado faturamento", "Duplicada"];
+    const headers = ["BR", "Status da PNR", "Motivo", "Entregador", "Base", "SLA", "Criado em", "Situação", "Tratativa análise", "Atualizado em", "Tratativa faturamento", "Atualizado faturamento", "Tratado Forms em", "Duplicada"];
     const body = rows.map(row => [
       row.br, row.status, row.reason, row.driver, row.station, row.sla, row.created,
-      row.treatmentState, row.treatmentText, row.treatmentUpdatedAt, row.billingTreatmentText, row.billingTreatmentUpdatedAt, row.duplicateInImport ? "Sim" : "Não"
+      row.treatmentState, row.treatmentText, row.treatmentUpdatedAt, row.billingTreatmentText, row.billingTreatmentUpdatedAt, row.billingFormTreatedAt, row.duplicateInImport ? "Sim" : "Não"
     ]);
     const csv = [headers, ...body].map(line => line.map(cell => `"${clean(cell).replaceAll('"', '""')}"`).join(",")).join("\r\n");
     const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
@@ -2226,6 +2233,7 @@ ${managerRankingText()}
       br: item.br, status: "", reason: "", driver: "", station: BASE_NAME, sla: "", created: "",
       treatmentState: item.state, treatmentText: item.text, treatmentUpdatedAt: item.updatedAt,
       billingTreatmentText: item.billingText || "", billingTreatmentUpdatedAt: item.billingUpdatedAt || "",
+      billingFormTreatedAt: item.billingFormTreatedAt || "",
       duplicateInImport: false
     }));
     exportCsv(rows, "pnr-tratativas-salvas.csv");
@@ -2255,6 +2263,7 @@ ${managerRankingText()}
       const treatmentState = rowValueByHints(row, ["Situacao", "Situação", "Situação", "Status da tratativa"]) || "Pendente";
       const updatedAt = rowValueByHints(row, ["Atualizado em", "Atualizacao", "Atualização", "Atualização"]);
       const billingUpdatedAt = rowValueByHints(row, ["Atualizado faturamento", "Atualizacao faturamento", "Atualização faturamento", "Atualização faturamento"]);
+      const billingFormTreatedAt = rowValueByHints(row, ["Tratado Forms em", "Forms tratado em", "Faturamento Forms tratado em"]);
       if (!text && !billingText && treatmentState === "Pendente") return null;
       return {
         br,
@@ -2262,7 +2271,8 @@ ${managerRankingText()}
         text,
         billingText,
         updatedAt: updatedAt || (text ? now : ""),
-        billingUpdatedAt: billingUpdatedAt || ""
+        billingUpdatedAt: billingUpdatedAt || "",
+        billingFormTreatedAt: billingFormTreatedAt || ""
       };
     }).filter(Boolean);
   }
@@ -2311,6 +2321,7 @@ ${managerRankingText()}
       if (clean(item.billingText)) {
         next.billingText = clean(item.billingText);
         next.billingUpdatedAt = item.billingUpdatedAt || current.billingUpdatedAt || item.updatedAt || "";
+        next.billingFormTreatedAt = item.billingFormTreatedAt || current.billingFormTreatedAt || "";
         next.updatedAt = next.updatedAt || next.billingUpdatedAt;
       }
         state.treatments[key] = next;
@@ -2750,14 +2761,14 @@ ${managerRankingText()}
       const input = event.target.closest("[data-treatment]");
       if (input) {
         const field = input.dataset.treatmentField || "text";
-        updateTreatment(input.dataset.treatment, { [field]: input.value }, { render: false });
+        updateTreatment(input.dataset.treatment, { [field]: input.value }, { render: false, fromBillingForms: field === "billingText" && state.panel === "billingForms" });
       }
     });
     els.rowsBody.addEventListener("input", debounce(event => {
       const input = event.target.closest("[data-treatment]");
       if (input) {
         const field = input.dataset.treatmentField || "text";
-        updateTreatment(input.dataset.treatment, { [field]: input.value }, { render: false });
+        updateTreatment(input.dataset.treatment, { [field]: input.value }, { render: false, fromBillingForms: field === "billingText" && state.panel === "billingForms" });
       }
     }, 450));
     els.driverRanking.addEventListener("click", event => {
