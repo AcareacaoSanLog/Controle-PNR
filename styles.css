@@ -1360,6 +1360,59 @@ tr:hover td { background: #211417; }
   background: rgba(242, 182, 53, .20);
 }
 
+#duplicates .duplicate-table .pill,
+.detail-modal.duplicate-detail-mode .pill {
+  min-width: 132px;
+  justify-content: center;
+  background: rgba(246, 244, 241, .92) !important;
+  border: 1px solid rgba(75, 93, 22, .34) !important;
+  color: #223300 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35);
+}
+
+#duplicates .duplicate-table .pill.amber,
+.detail-modal.duplicate-detail-mode .pill.amber {
+  background: rgba(242, 182, 53, .24) !important;
+  border-color: #D99A10 !important;
+  color: #223300 !important;
+}
+
+#duplicates .duplicate-table .pill.red,
+.detail-modal.duplicate-detail-mode .pill.red {
+  background: rgba(228, 92, 16, .16) !important;
+  border-color: #E45C10 !important;
+  color: #223300 !important;
+}
+
+#duplicates .duplicate-table .pill.green,
+.detail-modal.duplicate-detail-mode .pill.green {
+  background: rgba(75, 93, 22, .16) !important;
+  border-color: #4B5D16 !important;
+  color: #223300 !important;
+}
+
+#duplicates .duplicate-table .pill.blue,
+.detail-modal.duplicate-detail-mode .pill.blue,
+#duplicates .duplicate-table .pill.gray,
+.detail-modal.duplicate-detail-mode .pill.gray {
+  background: rgba(236, 226, 206, .88) !important;
+  border-color: rgba(75, 93, 22, .38) !important;
+  color: #223300 !important;
+}
+
+#duplicates .open-group-button {
+  background: #F6F4F1;
+  border-color: rgba(75, 93, 22, .28);
+  color: #4B5D16;
+  box-shadow: 0 8px 18px rgba(34, 51, 0, .08);
+}
+
+#duplicates .open-group-button:hover {
+  background: #E45C10;
+  border-color: #E45C10;
+  color: #F6F4F1;
+}
+
 .detail-modal.duplicate-detail-mode .detail-filters {
   display: none;
 }
