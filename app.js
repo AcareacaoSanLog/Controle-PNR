@@ -31,6 +31,7 @@
     modal: { status: "", driver: "", sort: "default", search: "" },
     overviewDetail: "",
     overviewModal: { status: [], driver: [], situation: [], reason: [], sort: "default", search: "" },
+    duplicates: { categories: [], statuses: [], drivers: [], search: "", group: "" },
     reports: { types: [], days: [], drivers: [], treatments: [], search: "" },
     panel: "overview",
     settings: loadJson(SETTINGS_KEY, {})
@@ -145,6 +146,14 @@
     detailTableHead: document.getElementById("detailTableHead"),
     rowsBody: document.getElementById("rowsBody"),
     historyBody: document.getElementById("historyBody"),
+    duplicateSummaryCards: document.getElementById("duplicateSummaryCards"),
+    duplicateCategoryFilter: document.getElementById("duplicateCategoryFilter"),
+    duplicateStatusFilter: document.getElementById("duplicateStatusFilter"),
+    duplicateDriverFilter: document.getElementById("duplicateDriverFilter"),
+    duplicateSearch: document.getElementById("duplicateSearch"),
+    clearDuplicateFiltersBtn: document.getElementById("clearDuplicateFiltersBtn"),
+    duplicateRowsCount: document.getElementById("duplicateRowsCount"),
+    duplicateBody: document.getElementById("duplicateBody"),
     managerDate: document.getElementById("managerDate"),
     managerMessage: document.getElementById("managerMessage"),
     managerStats: document.getElementById("managerStats"),
@@ -880,6 +889,80 @@
     return Array.from(map.entries()).sort((a, b) => dayRank(a[0]) - dayRank(b[0]) || a[0].localeCompare(b[0], "pt-BR"));
   }
 
+  function duplicateCategory(rows) {
+    const statuses = Array.from(new Set(rows.map(row => row.status).filter(Boolean)));
+    if (statuses.length > 1) return "Duplicada mista";
+    const status = statuses[0] || "Sem status";
+    if (status === "Faturamento") return "Duplicada faturamento";
+    if (status === "Revertido") return "Duplicada revertida";
+    if (["Criado", "Atribuída", "Em análise"].includes(status)) return "Duplicada em aberto";
+    return `Duplicada ${status.toLowerCase()}`;
+  }
+
+  function duplicateCategoryTone(category) {
+    if (category === "Duplicada mista") return "amber";
+    if (category === "Duplicada faturamento") return "red";
+    if (category === "Duplicada revertida") return "green";
+    if (category === "Duplicada em aberto") return "blue";
+    return "gray";
+  }
+
+  function duplicateCategoryRank(category) {
+    const ranks = {
+      "Duplicada mista": 1,
+      "Duplicada em aberto": 2,
+      "Duplicada faturamento": 3,
+      "Duplicada revertida": 4
+    };
+    return ranks[category] || 9;
+  }
+
+  function duplicateGroups(rows = state.rows) {
+    const map = new Map();
+    rows.forEach(row => {
+      const key = normalizeKey(row.br);
+      if (!key) return;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(row);
+    });
+    return Array.from(map.entries())
+      .filter(([, groupRows]) => groupRows.length > 1)
+      .map(([br, groupRows]) => {
+        const statusCounts = counter(groupRows, "status");
+        const driverCounts = counter(groupRows, "driver");
+        const category = duplicateCategory(groupRows);
+        return {
+          br,
+          rows: groupRows.slice().sort((a, b) => dateRank(a.created) - dateRank(b.created) || a.status.localeCompare(b.status, "pt-BR")),
+          qty: groupRows.length,
+          category,
+          tone: duplicateCategoryTone(category),
+          statuses: statusCounts.map(([label, total]) => `${label} (${countFormat(total)})`).join(" • "),
+          statusValues: statusCounts.map(([label]) => label),
+          drivers: driverCounts.map(([label, total]) => `${label}${total > 1 ? ` (${countFormat(total)})` : ""}`).join(" • "),
+          driverValues: driverCounts.map(([label]) => label),
+          created: groupRows.reduce((value, row) => earliestDate(value, row.created), groupRows[0]?.created || ""),
+          sla: groupRows.reduce((value, row) => earliestDate(value, displaySla(row)), displaySla(groupRows[0] || {}) || "")
+        };
+      })
+      .sort((a, b) => duplicateCategoryRank(a.category) - duplicateCategoryRank(b.category) || b.qty - a.qty || a.br.localeCompare(b.br, "pt-BR"));
+  }
+
+  function duplicateFilteredGroups() {
+    const categories = selectedValues(state.duplicates.categories);
+    const statuses = selectedValues(state.duplicates.statuses);
+    const drivers = selectedValues(state.duplicates.drivers);
+    const search = lower(state.duplicates.search);
+    return duplicateGroups().filter(group => {
+      if (categories.length && !categories.includes(group.category)) return false;
+      if (statuses.length && !group.statusValues.some(status => statuses.includes(status))) return false;
+      if (drivers.length && !group.driverValues.some(driver => drivers.includes(driver))) return false;
+      if (!search) return true;
+      return [group.br, group.category, group.statuses, group.drivers, ...group.rows.flatMap(row => [row.reason, row.treatmentText, row.billingTreatmentText])]
+        .some(value => lower(value).includes(search));
+    });
+  }
+
   function renderKpis() {
     const s = stats();
     const items = [
@@ -920,6 +1003,7 @@
     if (panel === "reverted") return state.rows.filter(row => row.status === "Revertido");
     if (panel === "billingForms") return state.rows.filter(isBillingForms);
     if (panel === "billing") return state.rows.filter(isBillingRecorded);
+    if (panel === "duplicates") return duplicateGroups().flatMap(group => group.rows);
     return state.rows.slice();
   }
 
@@ -949,6 +1033,15 @@
     }
     if (state.panel === "manager") {
       els.panelSummary.textContent = "Mensagem pronta para copiar e enviar";
+      return;
+    }
+    if (state.panel === "duplicates") {
+      const total = duplicateGroups().length;
+      const visible = duplicateFilteredGroups().length;
+      const rowsTotal = duplicateGroups().reduce((sum, group) => sum + group.qty, 0);
+      const parts = [`PNR Duplicadas: ${countFormat(total)} BRs | ${countFormat(rowsTotal)} ocorrências`];
+      if (visible !== total) parts.push(`exibindo ${countFormat(visible)} nos filtros`);
+      els.panelSummary.textContent = parts.join(" | ");
       return;
     }
     if (state.panel === "reports") {
@@ -1748,6 +1841,111 @@ ${managerRankingText()}
     }).join("");
   }
 
+  function syncDuplicateFilters() {
+    const groups = duplicateGroups();
+    const categoryOptions = counterByValue(groups, group => group.category).map(([label]) => ({ value: label, label }));
+    const statusMap = new Map();
+    const driverMap = new Map();
+    groups.forEach(group => {
+      group.statusValues.forEach(status => statusMap.set(status, (statusMap.get(status) || 0) + 1));
+      group.driverValues.forEach(driver => driverMap.set(driver, (driverMap.get(driver) || 0) + 1));
+    });
+    const statusOptions = Array.from(statusMap.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR")).map(([label]) => ({ value: label, label }));
+    const driverOptions = Array.from(driverMap.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR")).map(([label]) => ({ value: label, label }));
+    state.duplicates.categories = validSelections(state.duplicates.categories, categoryOptions);
+    state.duplicates.statuses = validSelections(state.duplicates.statuses, statusOptions);
+    state.duplicates.drivers = validSelections(state.duplicates.drivers, driverOptions);
+    renderMultiFilter(els.duplicateCategoryFilter, categoryOptions, state.duplicates.categories, "Todos os tipos");
+    renderMultiFilter(els.duplicateStatusFilter, statusOptions, state.duplicates.statuses, "Todos");
+    renderMultiFilter(els.duplicateDriverFilter, driverOptions, state.duplicates.drivers, "Todos");
+    if (els.duplicateSearch) els.duplicateSearch.value = state.duplicates.search || "";
+  }
+
+  function renderDuplicateSummaryCards(groups = duplicateGroups()) {
+    const byCategory = new Map();
+    groups.forEach(group => byCategory.set(group.category, (byCategory.get(group.category) || 0) + 1));
+    const cards = [
+      ["Total duplicadas", groups.length, "BRs repetidas na base", ""],
+      ["Mistas", byCategory.get("Duplicada mista") || 0, "Status diferentes na mesma BR", "Duplicada mista"],
+      ["Faturamento", byCategory.get("Duplicada faturamento") || 0, "Duplicadas em faturamento", "Duplicada faturamento"],
+      ["Revertidas", byCategory.get("Duplicada revertida") || 0, "Duplicadas revertidas", "Duplicada revertida"],
+      ["Em aberto", byCategory.get("Duplicada em aberto") || 0, "Criadas, atribuídas ou em análise", "Duplicada em aberto"]
+    ];
+    els.duplicateSummaryCards.innerHTML = cards.map(([label, value, hint, category]) => `
+      <button class="duplicate-kpi ${category ? duplicateCategoryTone(category) : "gray"}" data-duplicate-category="${html(category)}" type="button">
+        <span>${html(label)}</span>
+        <strong>${countFormat(value)}</strong>
+        <small>${html(hint)}</small>
+      </button>
+    `).join("");
+  }
+
+  function renderDuplicates() {
+    if (!els.duplicateBody) return;
+    const groups = duplicateGroups();
+    syncDuplicateFilters();
+    const filtered = duplicateFilteredGroups();
+    renderDuplicateSummaryCards(groups);
+    const occurrenceTotal = filtered.reduce((sum, group) => sum + group.qty, 0);
+    els.duplicateRowsCount.textContent = `${countFormat(filtered.length)} BR${filtered.length === 1 ? "" : "s"} duplicada${filtered.length === 1 ? "" : "s"} | ${countFormat(occurrenceTotal)} ocorrência${occurrenceTotal === 1 ? "" : "s"}`;
+    if (!filtered.length) {
+      els.duplicateBody.innerHTML = `<tr><td class="empty-row" colspan="8">Nenhuma BR duplicada encontrada nos filtros atuais.</td></tr>`;
+      return;
+    }
+    els.duplicateBody.innerHTML = filtered.map(group => `
+      <tr>
+        <td><strong class="br-cell">${html(group.br)}</strong></td>
+        <td><strong>${countFormat(group.qty)}</strong></td>
+        <td><span class="pill ${html(group.tone)}">${html(group.category)}</span></td>
+        <td>${html(group.statuses)}</td>
+        <td>${html(group.drivers)}</td>
+        <td>${html(dateOnlyLabel(group.created, "Sem data"))}</td>
+        <td>${html(dateOnlyLabel(group.sla, "Sem SLA"))}</td>
+        <td><button class="open-group-button" data-duplicate-open="${html(group.br)}" type="button">Abrir</button></td>
+      </tr>
+    `).join("");
+  }
+
+  function duplicateTreatmentText(row) {
+    return row.status === "Faturamento" ? row.billingTreatmentText : row.treatmentText;
+  }
+
+  function openDuplicateDetail(br) {
+    const group = duplicateGroups().find(item => item.br === normalizeKey(br));
+    if (!group) return;
+    if (els.detailModal.parentElement !== document.body) document.body.appendChild(els.detailModal);
+    els.detailModal.classList.add("duplicate-detail-mode");
+    els.detailModalTitle.textContent = `Duplicidade ${group.br}`;
+    els.detailModalCount.textContent = `${countFormat(group.qty)} ocorrências | ${group.category}`;
+    els.detailTableHead.innerHTML = `
+      <tr>
+        <th>BR</th>
+        <th>Status</th>
+        <th>Entregador</th>
+        <th>Motivo</th>
+        <th>PNR criada em</th>
+        <th>Vence SLA</th>
+        <th>Tratativa</th>
+      </tr>
+    `;
+    els.rowsBody.innerHTML = group.rows.map(row => {
+      const treatment = clean(duplicateTreatmentText(row)) || "Sem tratativa";
+      return `
+        <tr>
+          <td><strong>${html(row.br)}</strong></td>
+          <td><span class="detail-status-pill">${html(row.status)}</span></td>
+          <td>${html(row.driver)}</td>
+          <td>${html(row.reason)}</td>
+          <td>${html(row.created || "Sem data")}</td>
+          <td><strong>${html(displaySla(row) || "Sem SLA")}</strong></td>
+          <td>${html(treatment)}</td>
+        </tr>
+      `;
+    }).join("");
+    els.detailModal.showModal();
+    if (window.lucide) window.lucide.createIcons();
+  }
+
   function hasDetailFilter() {
     return Boolean(state.filters.group);
   }
@@ -1801,6 +1999,7 @@ ${managerRankingText()}
     if (isWorklistPanel()) {
       return hasDetailFilter() ? visibleRows() : filterRows({ ignoreGroup: true });
     }
+    if (state.panel === "duplicates") return duplicateFilteredGroups().flatMap(group => group.rows);
     if (state.panel === "reports") return reportsFilteredRows();
     return state.rows.slice();
   }
@@ -1969,6 +2168,8 @@ ${managerRankingText()}
         ? state.overviewModal
         : container.dataset.scope === "reports"
         ? state.reports
+        : container.dataset.scope === "duplicates"
+        ? state.duplicates
         : state.filters;
       const current = new Set(selectedValues(scope[key]));
       if (!checkbox.value) {
@@ -1981,6 +2182,11 @@ ${managerRankingText()}
       if (container.dataset.scope === "overview") renderOverviewDetail();
       else if (container.dataset.scope === "reports") {
         renderReports();
+        renderPanelSummary();
+      }
+      else if (container.dataset.scope === "duplicates") {
+        state.duplicates.group = "";
+        renderDuplicates();
         renderPanelSummary();
       }
       else {
@@ -2155,7 +2361,7 @@ ${managerRankingText()}
       return rows;
     }).sort((a, b) => new Date(b.historyUpdatedAt || 0) - new Date(a.historyUpdatedAt || 0));
     if (!items.length) {
-      els.historyBody.innerHTML = `<tr><td class="empty-row" colspan="4">Nenhuma tratativa salva ainda.</td></tr>`;
+      els.historyBody.innerHTML = `<tr><td class="empty-row" colspan="5">Nenhuma tratativa salva ainda.</td></tr>`;
       return;
     }
     els.historyBody.innerHTML = items.map(item => {
@@ -2166,6 +2372,11 @@ ${managerRankingText()}
           <td><span class="pill ${statusTone(brStatus)}">${html(brStatus)}</span></td>
           <td>${html(`${item.historyType}: ${item.historyText || ""}`)}</td>
           <td>${html(dateLabel(item.historyUpdatedAt))}</td>
+          <td>
+            <button class="history-remove-button" data-history-remove="${html(item.br)}" data-history-type="${html(item.historyType)}" type="button">
+              Remover tratativa
+            </button>
+          </td>
         </tr>
       `;
     }).join("");
@@ -2210,6 +2421,34 @@ ${managerRankingText()}
     if (options.render !== false) renderAll();
     setSync("Tratativa salva.", "ok");
     if (options.cloud !== false) queueTreatmentCloudSync();
+  }
+
+  function removeHistoryTreatment(br, type, options = {}) {
+    const key = normalizeKey(br);
+    const current = state.treatments[key];
+    if (!current) return false;
+    const next = { ...current, br: key };
+    if (type === "Faturamento") {
+      delete next.billingText;
+      delete next.billingUpdatedAt;
+      delete next.billingFormTreatedAt;
+      delete next.legacyBillingMigrated;
+    } else {
+      delete next.text;
+      delete next.updatedAt;
+      next.state = "Pendente";
+    }
+    if (!clean(next.text) && !clean(next.billingText) && (next.state || "Pendente") === "Pendente") {
+      delete state.treatments[key];
+    } else {
+      state.treatments[key] = next;
+    }
+    hydrateRows();
+    saveLocal();
+    if (options.render !== false) renderAll();
+    setSync(`Tratativa de ${type.toLowerCase()} removida da BR ${key}.`, "ok");
+    if (options.cloud !== false) queueTreatmentCloudSync();
+    return true;
   }
 
   function exportCsv(rows, filename) {
@@ -2659,6 +2898,7 @@ ${managerRankingText()}
       reverted: "PNR Revertidas",
       billingForms: "Faturamento Forms",
       billing: "Faturamento PNR",
+      duplicates: "PNR Duplicadas",
       reports: "Tratativas informes",
       manager: "Gestor",
       history: "Histórico",
@@ -2674,6 +2914,7 @@ ${managerRankingText()}
     }
     if (panel === "manager") renderManager();
     if (panel === "reports") renderReports();
+    if (panel === "duplicates") renderDuplicates();
     if (panel === "history") renderHistory();
     if (panel === "settings") renderSettings();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2687,6 +2928,7 @@ ${managerRankingText()}
     renderPanelSummary();
     renderManager();
     renderReports();
+    renderDuplicates();
     renderHistory();
     renderSettings();
     renderTopActions();
@@ -2709,6 +2951,34 @@ ${managerRankingText()}
       renderReports();
       renderPanelSummary();
     });
+    els.duplicateSearch?.addEventListener("input", event => {
+      state.duplicates.search = event.target.value;
+      state.duplicates.group = "";
+      renderDuplicates();
+      renderPanelSummary();
+    });
+    els.clearDuplicateFiltersBtn?.addEventListener("click", () => {
+      state.duplicates = { categories: [], statuses: [], drivers: [], search: "", group: "" };
+      renderDuplicates();
+      renderPanelSummary();
+    });
+    els.duplicateSummaryCards?.addEventListener("click", event => {
+      const button = event.target.closest("[data-duplicate-category]");
+      if (!button) return;
+      const category = clean(button.dataset.duplicateCategory);
+      state.duplicates.categories = category ? [category] : [];
+      state.duplicates.statuses = [];
+      state.duplicates.drivers = [];
+      state.duplicates.search = "";
+      state.duplicates.group = "";
+      renderDuplicates();
+      renderPanelSummary();
+    });
+    els.duplicateBody?.addEventListener("click", event => {
+      const button = event.target.closest("[data-duplicate-open]");
+      if (!button) return;
+      openDuplicateDetail(button.dataset.duplicateOpen);
+    });
     els.reportsBody?.addEventListener("click", event => {
       const button = event.target.closest("[data-report-open]");
       if (!button) return;
@@ -2721,7 +2991,7 @@ ${managerRankingText()}
     els.assignCreatedBtn?.addEventListener("click", assignAllCreatedRows);
     els.exportFormsBtn?.addEventListener("click", exportBillingFormsExcel);
     els.searchInput.addEventListener("input", event => { state.filters.search = event.target.value; state.filters.group = ""; renderAll(); });
-    [els.driverFilter, els.situationFilter, els.statusFilter, els.reasonFilter, els.dayFilter, els.overviewStatusFilter, els.overviewDriverFilter, els.overviewSituationFilter, els.overviewReasonFilter, els.reportsTypeFilter, els.reportsDayFilter, els.reportsDriverFilter, els.reportsTreatmentFilter].forEach(bindMultiFilter);
+    [els.driverFilter, els.situationFilter, els.statusFilter, els.reasonFilter, els.dayFilter, els.overviewStatusFilter, els.overviewDriverFilter, els.overviewSituationFilter, els.overviewReasonFilter, els.reportsTypeFilter, els.reportsDayFilter, els.reportsDriverFilter, els.reportsTreatmentFilter, els.duplicateCategoryFilter, els.duplicateStatusFilter, els.duplicateDriverFilter].forEach(bindMultiFilter);
     document.addEventListener("click", event => {
       if (!event.target.closest(".multi-filter")) closeMultiFilters();
     });
@@ -2744,7 +3014,9 @@ ${managerRankingText()}
     });
     els.detailModal.addEventListener("close", () => {
       els.detailModal.classList.remove("report-detail-mode");
+      els.detailModal.classList.remove("duplicate-detail-mode");
       state.filters.group = "";
+      state.duplicates.group = "";
       renderAll();
     });
     els.modalStatusFilter.addEventListener("change", event => { state.modal.status = event.target.value; renderAll(); });
@@ -2807,6 +3079,15 @@ ${managerRankingText()}
     els.overviewClearFiltersBtn.addEventListener("click", () => {
       state.overviewModal = { status: [], driver: [], situation: [], reason: [], sort: "default", search: "" };
       renderOverviewDetail();
+    });
+    els.historyBody?.addEventListener("click", event => {
+      const button = event.target.closest("[data-history-remove]");
+      if (!button) return;
+      const br = button.dataset.historyRemove;
+      const type = button.dataset.historyType;
+      const confirmed = window.confirm(`Remover a tratativa de ${type.toLowerCase()} da BR ${br}?`);
+      if (!confirmed) return;
+      removeHistoryTreatment(br, type);
     });
     els.overviewDrillBody.addEventListener("input", debounce(event => {
       const input = event.target.closest("[data-overview-treatment]");

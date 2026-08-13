@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Torre de Controle PNR</title>
-  <link rel="stylesheet" href="styles.css?v=20260811-13">
+  <link rel="stylesheet" href="styles.css?v=20260813-01">
 </head>
 <body class="cloud-auth-locked">
   <div class="app">
@@ -25,6 +25,7 @@
         <button class="nav-button" data-panel="reverted" type="button"><i data-lucide="rotate-ccw"></i><span>PNR Revertidas</span></button>
         <button class="nav-button" data-panel="billingForms" type="button"><i data-lucide="clipboard-list"></i><span>Faturamento Forms</span></button>
         <button class="nav-button" data-panel="billing" type="button"><i data-lucide="receipt"></i><span>Faturamento PNR</span></button>
+        <button class="nav-button" data-panel="duplicates" type="button"><i data-lucide="copy"></i><span>PNR Duplicadas</span></button>
         <button class="nav-button" data-panel="worklist" type="button"><i data-lucide="list-checks"></i><span>Tratativas</span></button>
         <button class="nav-button" data-panel="reports" type="button"><i data-lucide="megaphone"></i><span>Tratativas informes</span></button>
         <button class="nav-button" data-panel="manager" type="button"><i data-lucide="send"></i><span>Gestor</span></button>
@@ -304,6 +305,56 @@
         </dialog>
       </section>
 
+      <section class="panel" id="duplicates">
+        <div class="duplicate-kpi-grid" id="duplicateSummaryCards"></div>
+
+        <div class="toolbar compact-toolbar duplicate-toolbar">
+          <div class="filter-label">
+            <span>Tipo de duplicidade</span>
+            <div class="multi-filter" id="duplicateCategoryFilter" data-scope="duplicates" data-filter="categories"></div>
+          </div>
+          <div class="filter-label">
+            <span>Status encontrado</span>
+            <div class="multi-filter" id="duplicateStatusFilter" data-scope="duplicates" data-filter="statuses"></div>
+          </div>
+          <div class="filter-label">
+            <span>Entregador</span>
+            <div class="multi-filter" id="duplicateDriverFilter" data-scope="duplicates" data-filter="drivers"></div>
+          </div>
+          <label>
+            <span>Buscar</span>
+            <input id="duplicateSearch" type="search" placeholder="BR, status ou entregador">
+          </label>
+          <button class="secondary-button" id="clearDuplicateFiltersBtn" type="button"><i data-lucide="x"></i><span>Limpar</span></button>
+        </div>
+
+        <section class="surface duplicate-list-card">
+          <header class="section-head duplicate-head">
+            <div>
+              <h3>PNR Duplicadas</h3>
+              <p id="duplicateRowsCount">0 BRs duplicadas encontradas</p>
+            </div>
+          </header>
+          <div class="duplicate-table-shell">
+            <table class="duplicate-table">
+              <thead>
+                <tr>
+                  <th>BR</th>
+                  <th>Qtd</th>
+                  <th>Tipo</th>
+                  <th>Status encontrados</th>
+                  <th>Entregadores</th>
+                  <th>PNR criada em</th>
+                  <th>Vence SLA</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="duplicateBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
       <section class="panel" id="reports">
         <div class="toolbar compact-toolbar reports-toolbar">
           <div class="filter-label">
@@ -384,6 +435,7 @@
                 <th>Status da BR</th>
                 <th>Tratativa</th>
                 <th>Última atualização</th>
+                <th>Ação</th>
               </tr>
             </thead>
             <tbody id="historyBody"></tbody>
@@ -518,6 +570,6 @@ pnr_imports</pre>
   <script src="vendor/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=20260812-01"></script>
+  <script src="app.js?v=20260813-01"></script>
 </body>
 </html>

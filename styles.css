@@ -1229,6 +1229,172 @@ th {
 tr:hover td { background: #211417; }
 .br-cell { font-weight: 800; color: #b44657; white-space: nowrap; overflow-wrap: normal; }
 .sub-text { color: var(--muted); font-size: 12px; margin-top: 3px; }
+.history-remove-button {
+  border: 1px solid rgba(228, 92, 16, .28);
+  border-radius: 8px;
+  background: rgba(228, 92, 16, .12);
+  color: #e45c10;
+  font-weight: 900;
+  padding: 8px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.history-remove-button:hover {
+  background: #e45c10;
+  color: #f6f4f1;
+  box-shadow: 0 10px 22px rgba(228, 92, 16, .18);
+}
+
+.duplicate-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.duplicate-kpi {
+  min-height: 96px;
+  border: 1px solid rgba(75, 93, 22, .22);
+  border-top: 4px solid #4B5D16;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(229, 214, 181, .92), rgba(236, 226, 206, .74));
+  color: #223300;
+  font-weight: 900;
+  text-align: center;
+  padding: 12px;
+  cursor: pointer;
+  box-shadow: 0 16px 34px rgba(34, 51, 0, .10);
+}
+
+.duplicate-kpi:hover {
+  background: linear-gradient(135deg, rgba(236, 226, 206, .98), rgba(242, 182, 53, .34));
+  transform: translateY(-1px);
+}
+
+.duplicate-kpi span,
+.duplicate-kpi small {
+  display: block;
+  color: #4B5D16;
+}
+
+.duplicate-kpi strong {
+  display: block;
+  margin: 8px 0;
+  color: #E45C10;
+  font-size: clamp(26px, 2.7vw, 38px);
+  line-height: 1;
+}
+
+.duplicate-kpi.amber { border-top-color: #F2B635; }
+.duplicate-kpi.red { border-top-color: #E45C10; }
+.duplicate-kpi.green { border-top-color: #4B5D16; }
+.duplicate-kpi.blue { border-top-color: #8da257; }
+
+.duplicate-toolbar {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(180px, .95fr) minmax(210px, 1.05fr) minmax(240px, 1.25fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.duplicate-list-card {
+  padding: 14px !important;
+}
+
+.duplicate-head {
+  margin-bottom: 12px;
+}
+
+.duplicate-head h3,
+.duplicate-head p {
+  margin: 0;
+}
+
+.duplicate-head p {
+  color: #4B5D16;
+  font-weight: 900;
+}
+
+.duplicate-table-shell {
+  max-height: calc(100vh - 310px);
+  overflow: auto;
+  border: 1px solid rgba(75, 93, 22, .2);
+  border-radius: 8px;
+  background: rgba(236, 226, 206, .72);
+}
+
+.duplicate-table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+}
+
+.duplicate-table th,
+.duplicate-table td {
+  padding: 12px 10px;
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(75, 93, 22, .16);
+  color: #223300;
+  font-weight: 900;
+}
+
+.duplicate-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #4B5D16;
+  color: #F6F4F1;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.duplicate-table tr:nth-child(even) td {
+  background: rgba(246, 244, 241, .55);
+}
+
+.duplicate-table tr:nth-child(odd) td {
+  background: rgba(229, 214, 181, .72);
+}
+
+.duplicate-table tr:hover td {
+  background: rgba(242, 182, 53, .20);
+}
+
+.detail-modal.duplicate-detail-mode .detail-filters {
+  display: none;
+}
+
+.detail-modal.duplicate-detail-mode .detail-table th:nth-child(1),
+.detail-modal.duplicate-detail-mode .detail-table td:nth-child(1) { width: 13%; }
+.detail-modal.duplicate-detail-mode .detail-table th:nth-child(2),
+.detail-modal.duplicate-detail-mode .detail-table td:nth-child(2) { width: 12%; }
+.detail-modal.duplicate-detail-mode .detail-table th:nth-child(3),
+.detail-modal.duplicate-detail-mode .detail-table td:nth-child(3) { width: 18%; }
+.detail-modal.duplicate-detail-mode .detail-table th:nth-child(4),
+.detail-modal.duplicate-detail-mode .detail-table td:nth-child(4) { width: 18%; }
+.detail-modal.duplicate-detail-mode .detail-table th:nth-child(5),
+.detail-modal.duplicate-detail-mode .detail-table td:nth-child(5),
+.detail-modal.duplicate-detail-mode .detail-table th:nth-child(6),
+.detail-modal.duplicate-detail-mode .detail-table td:nth-child(6) { width: 13%; }
+.detail-modal.duplicate-detail-mode .detail-table th:nth-child(7),
+.detail-modal.duplicate-detail-mode .detail-table td:nth-child(7) { width: 13%; }
+
+@media (max-width: 1180px) {
+  .duplicate-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .duplicate-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .duplicate-kpi-grid,
+  .duplicate-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
 .pill {
   display: inline-flex;
   align-items: center;
