@@ -181,6 +181,7 @@
     assignedSlaPrintStatus: document.getElementById("assignedSlaPrintStatus"),
     exportViewBtn: document.getElementById("exportViewBtn"),
     exportFormsBtn: document.getElementById("exportFormsBtn"),
+    exportBillingPnrBtn: document.getElementById("exportBillingPnrBtn"),
     exportTreatmentsBtn: document.getElementById("exportTreatmentsBtn"),
     exportTreatmentsWorklistBtn: document.getElementById("exportTreatmentsWorklistBtn"),
     saveCloudBtn: document.getElementById("saveCloudBtn"),
@@ -1087,6 +1088,11 @@
     const showFormsExport = state.panel === "billingForms";
     els.exportFormsBtn.hidden = !showFormsExport;
     els.exportFormsBtn.disabled = !state.rows.some(isBillingForms);
+    if (els.exportBillingPnrBtn) {
+      const showBillingPnrExport = state.panel === "billing";
+      els.exportBillingPnrBtn.hidden = !showBillingPnrExport;
+      els.exportBillingPnrBtn.disabled = !state.rows.some(isBillingRecorded);
+    }
     if (els.exportTreatmentsWorklistBtn) {
       els.exportTreatmentsWorklistBtn.hidden = state.panel !== "worklist";
       els.exportTreatmentsWorklistBtn.disabled = !Object.keys(state.treatments).length;
@@ -2015,6 +2021,49 @@ ${managerRankingText()}
       }));
   }
 
+  function latestImportDateLabel() {
+    const importDate = state.imports?.[0]?.at || state.imports?.[0]?.importedAt || "";
+    return dateOnlyLabel(importDate, "");
+  }
+
+  function billingEnteredDate(row) {
+    const originalDate = rowValueByHints(row.originalColumns || {}, [
+      "Data faturamento",
+      "Data de faturamento",
+      "Faturamento em",
+      "Billing date",
+      "Billing time",
+      "ForBilling time",
+      "For Billing time",
+      "Updated Time",
+      "Update Time",
+      "Last Updated Time"
+    ]);
+    return dateOnlyLabel(originalDate, "")
+      || latestImportDateLabel()
+      || dateOnlyLabel(row.billingTreatmentUpdatedAt, "")
+      || dateOnlyLabel(row.billingFormTreatedAt, "")
+      || dateOnlyLabel(row.created, "");
+  }
+
+  function billingPnrExportRows() {
+    return state.rows
+      .filter(isBillingRecorded)
+      .sort((a, b) => {
+        const driverCompare = a.driver.localeCompare(b.driver, "pt-BR");
+        if (driverCompare) return driverCompare;
+        return a.br.localeCompare(b.br, "pt-BR");
+      })
+      .map(row => ({
+        BR: row.br,
+        Entregador: row.driver,
+        "PNR criada em": dateOnlyLabel(row.created, row.created || ""),
+        "Entrou em faturamento em": billingEnteredDate(row),
+        "Motivo do faturamento": row.reason || "Sem motivo",
+        Tratativa: row.billingTreatmentText || row.treatmentText || "Sem tratativa"
+      }));
+  }
+
   function modalRows() {
     const search = lower(state.modal.search);
     let rows = visibleRows().filter(row => {
@@ -2607,6 +2656,32 @@ ${managerRankingText()}
     setSync(`${countFormat(rows.length)} PNRs do Faturamento Forms exportadas. ${countFormat(ihsFilled)} com ID IHS.`, "ok");
   }
 
+  function exportBillingPnrExcel() {
+    if (typeof XLSX === "undefined" || !XLSX.utils || !XLSX.writeFile) {
+      setSync("A biblioteca de Excel não carregou.", "error");
+      return;
+    }
+    const rows = billingPnrExportRows();
+    if (!rows.length) {
+      setSync("Não há PNRs no Faturamento PNR para exportar.", "warn");
+      return;
+    }
+    const headers = ["BR", "Entregador", "PNR criada em", "Entrou em faturamento em", "Motivo do faturamento", "Tratativa"];
+    const sheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+    sheet["!cols"] = [
+      { wch: 20 },
+      { wch: 36 },
+      { wch: 16 },
+      { wch: 24 },
+      { wch: 34 },
+      { wch: 46 }
+    ];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, "Faturamento PNR");
+    XLSX.writeFile(workbook, `faturamento-pnr-${localDateInput(new Date())}.xlsx`);
+    setSync(`${countFormat(rows.length)} PNRs do Faturamento PNR exportadas em Excel.`, "ok");
+  }
+
   function renderSettings() {
     const settings = cloudSettings();
     els.supabaseUrl.value = settings.supabaseUrl || "";
@@ -2990,6 +3065,7 @@ ${managerRankingText()}
     els.resetReportsSlaPrintBtn?.addEventListener("click", resetReportsSlaPrint);
     els.assignCreatedBtn?.addEventListener("click", assignAllCreatedRows);
     els.exportFormsBtn?.addEventListener("click", exportBillingFormsExcel);
+    els.exportBillingPnrBtn?.addEventListener("click", exportBillingPnrExcel);
     els.searchInput.addEventListener("input", event => { state.filters.search = event.target.value; state.filters.group = ""; renderAll(); });
     [els.driverFilter, els.situationFilter, els.statusFilter, els.reasonFilter, els.dayFilter, els.overviewStatusFilter, els.overviewDriverFilter, els.overviewSituationFilter, els.overviewReasonFilter, els.reportsTypeFilter, els.reportsDayFilter, els.reportsDriverFilter, els.reportsTreatmentFilter, els.duplicateCategoryFilter, els.duplicateStatusFilter, els.duplicateDriverFilter].forEach(bindMultiFilter);
     document.addEventListener("click", event => {
