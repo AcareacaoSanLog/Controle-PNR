@@ -27,7 +27,7 @@
     assignedOverrides: {},
     ticketIhsByBr: {},
     imports: [],
-    filters: { search: "", situation: [], status: [], reason: [], driver: [], day: [], group: "" },
+    filters: { search: "", situation: [], status: [], reason: [], treatment: [], driver: [], day: [], group: "" },
     modal: { status: "", driver: "", sort: "default", search: "" },
     overviewDetail: "",
     overviewModal: { status: [], driver: [], situation: [], reason: [], sort: "default", search: "" },
@@ -129,6 +129,7 @@
     driverFilter: document.getElementById("driverFilter"),
     statusFilter: document.getElementById("statusFilter"),
     reasonFilter: document.getElementById("reasonFilter"),
+    treatmentFilter: document.getElementById("treatmentFilter"),
     dayFilter: document.getElementById("dayFilter"),
     assignCreatedBtn: document.getElementById("assignCreatedBtn"),
     treatmentGroupsHead: document.getElementById("treatmentGroupsHead"),
@@ -1014,6 +1015,7 @@
       selectedValues(state.filters.situation).length ||
       selectedValues(state.filters.status).length ||
       selectedValues(state.filters.reason).length ||
+      selectedValues(state.filters.treatment).length ||
       selectedValues(state.filters.driver).length ||
       selectedValues(state.filters.day).length
     );
@@ -1967,11 +1969,16 @@ ${managerRankingText()}
     return clean(text || (stateLabel !== "Pendente" ? stateLabel : "")) || "Sem tratativa";
   }
 
+  function treatmentFilterValue(row, panel = state.panel) {
+    return clean(rowTreatmentText(row, panel));
+  }
+
   function filterRows(options = {}) {
     const search = lower(state.filters.search);
     const forcedStatus = statusPanelStatus();
     const statusFilters = selectedValues(state.filters.status);
     const reasonFilters = selectedValues(state.filters.reason);
+    const treatmentFilters = selectedValues(state.filters.treatment);
     const situationFilters = selectedValues(state.filters.situation);
     const driverFilters = selectedValues(state.filters.driver);
     const dayFilters = selectedValues(state.filters.day);
@@ -1983,6 +1990,7 @@ ${managerRankingText()}
       if (isAssignedPanel() && !hasAssignedDriver(row)) return false;
       if (statusFilters.length && !statusFilters.includes(row.status)) return false;
       if (reasonFilters.length && !reasonFilters.includes(row.reason)) return false;
+      if (treatmentFilters.length && !treatmentFilters.includes(treatmentFilterValue(row))) return false;
       if (situationFilters.length && !situationFilters.some(situation => situationMatches(row, situation))) return false;
       if (!options.ignoreDriver && driverFilters.length && !driverFilters.includes(row.driver)) return false;
       if (showDayFilterPanel() && dayFilters.length && !dayFilters.includes(rowCreatedDay(row))) return false;
@@ -2106,17 +2114,23 @@ ${managerRankingText()}
     const driverOptions = counter(optionRows, "driver").map(([label]) => ({ value: label, label }));
     const statusOptions = counter(optionRows, "status").map(([label]) => ({ value: label, label }));
     const reasonOptions = counter(optionRows, "reason").map(([label]) => ({ value: label, label }));
+    const treatmentOptions = counterByValue(optionRows, row => treatmentFilterValue(row))
+      .filter(([label]) => clean(label))
+      .map(([label]) => ({ value: label, label }));
     const dayOptions = counterByValue(optionRows, rowCreatedDay).map(([label]) => ({ value: label, label }));
     state.filters.driver = validSelections(state.filters.driver, driverOptions);
     state.filters.situation = validSelections(state.filters.situation, situationOptions);
     state.filters.status = validSelections(state.filters.status, statusOptions);
     state.filters.reason = validSelections(state.filters.reason, reasonOptions);
+    state.filters.treatment = validSelections(state.filters.treatment, treatmentOptions);
     state.filters.day = validSelections(state.filters.day, dayOptions);
     if (!detailColumns.showSituation) state.filters.situation = [];
     if (!detailColumns.showReason) state.filters.reason = [];
+    if (!treatmentAllowedPanel()) state.filters.treatment = [];
     if (!showDayFilterPanel()) state.filters.day = [];
     setFilterVisible(els.situationFilter, detailColumns.showSituation);
     setFilterVisible(els.reasonFilter, detailColumns.showReason);
+    setFilterVisible(els.treatmentFilter, treatmentAllowedPanel());
     setFilterVisible(els.dayFilter, showDayFilterPanel());
     if (els.assignCreatedBtn) {
       const createdCount = state.rows.filter(row => row.status === "Criado").length;
@@ -2131,6 +2145,7 @@ ${managerRankingText()}
     renderMultiFilter(els.situationFilter, situationOptions, state.filters.situation, "Todas");
     renderMultiFilter(els.statusFilter, statusOptions, state.filters.status, "Todos");
     renderMultiFilter(els.reasonFilter, reasonOptions, state.filters.reason, "Todos");
+    renderMultiFilter(els.treatmentFilter, treatmentOptions, state.filters.treatment, "Todas");
     renderMultiFilter(els.dayFilter, dayOptions, state.filters.day, "Todos");
     els.searchInput.value = state.filters.search;
     renderTreatmentGroups();
@@ -3067,12 +3082,12 @@ ${managerRankingText()}
     els.exportFormsBtn?.addEventListener("click", exportBillingFormsExcel);
     els.exportBillingPnrBtn?.addEventListener("click", exportBillingPnrExcel);
     els.searchInput.addEventListener("input", event => { state.filters.search = event.target.value; state.filters.group = ""; renderAll(); });
-    [els.driverFilter, els.situationFilter, els.statusFilter, els.reasonFilter, els.dayFilter, els.overviewStatusFilter, els.overviewDriverFilter, els.overviewSituationFilter, els.overviewReasonFilter, els.reportsTypeFilter, els.reportsDayFilter, els.reportsDriverFilter, els.reportsTreatmentFilter, els.duplicateCategoryFilter, els.duplicateStatusFilter, els.duplicateDriverFilter].forEach(bindMultiFilter);
+    [els.driverFilter, els.situationFilter, els.statusFilter, els.reasonFilter, els.treatmentFilter, els.dayFilter, els.overviewStatusFilter, els.overviewDriverFilter, els.overviewSituationFilter, els.overviewReasonFilter, els.reportsTypeFilter, els.reportsDayFilter, els.reportsDriverFilter, els.reportsTreatmentFilter, els.duplicateCategoryFilter, els.duplicateStatusFilter, els.duplicateDriverFilter].forEach(bindMultiFilter);
     document.addEventListener("click", event => {
       if (!event.target.closest(".multi-filter")) closeMultiFilters();
     });
     els.clearFiltersBtn.addEventListener("click", () => {
-      state.filters = { search: "", situation: [], status: [], reason: [], driver: [], day: [], group: "" };
+      state.filters = { search: "", situation: [], status: [], reason: [], treatment: [], driver: [], day: [], group: "" };
       renderAll();
     });
     els.treatmentGroupsBody.addEventListener("click", event => {
